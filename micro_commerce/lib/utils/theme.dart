@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Primary Colors
-  static const darkGreen = Color(0xFF1B5E20);
-  static const lightGreen = Color(0xFF4CAF50);
-  static const white = Colors.white;
-  static const black = Colors.black87;
+  static const darkGreen = Color(0xFF064E3B);  // เขียวเข้ม
+  static const lightGreen = Color(0xFF10B981); // เขียวอ่อน
+  static const white = Color(0xFFFFFFFF);      // ขาว
+  static const black = Color(0xFF000000);      // ดำ
 
   // Accent Colors
   static const errorRed = Color(0xFFE53935);
