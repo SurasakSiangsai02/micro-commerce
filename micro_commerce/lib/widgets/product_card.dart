@@ -60,34 +60,34 @@ class ProductCard extends StatelessWidget {
                       Text(
                         product.name,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
 
                       // Price
                       Text(
                         '\$${product.price.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.darkGreen,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 2),
 
                       // Rating and Review Count
                       Row(
                         children: [
                           const Icon(
                             Icons.star,
-                            size: 16,
+                            size: 14,
                             color: Colors.amber,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 2),
                           Text(
                             product.rating.toStringAsFixed(1),
                             style: const TextStyle(

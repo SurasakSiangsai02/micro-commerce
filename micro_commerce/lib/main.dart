@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'utils/theme.dart';
 import 'providers/cart_provider.dart';
+import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/profile_edit_screen.dart';
@@ -11,12 +14,21 @@ import 'screens/customer/cart_screen.dart';
 import 'screens/customer/checkout_screen.dart';
 import 'screens/customer/order_confirmation_screen.dart';
 import 'screens/common/home_screen.dart';
+import 'screens/debug/test_screen.dart';
 import 'models/product.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => CartProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -37,6 +49,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/checkout': (context) => const CheckoutScreen(),
         '/order-confirmation': (context) => const OrderConfirmationScreen(),
+        '/test': (context) => const TestScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product-detail') {

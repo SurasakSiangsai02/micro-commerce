@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../utils/theme.dart';
+import '../../utils/error_handler.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/cart_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,17 +18,45 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
 
-  void _handleLogin() {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isLoading = true);
-      // TODO: Implement actual login logic later
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        // Mock successful login
+  @override
+  void initState() {
+    super.initState();
+    // Check if user is already logged in
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.isAuthenticated) {
         Navigator.pushReplacementNamed(context, '/home');
-      });
+      }
+    });
+  }
+
+  Future<void> _handleLogin() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      
+      final success = await authProvider.signIn(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (success) {
+        // Set user ID in cart provider
+        cartProvider.setUserId(authProvider.firebaseUser?.uid);
+        
+        if (mounted) {
+          ErrorHandler.showSuccessSnackBar(context, 'Login successful!');
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        if (mounted && authProvider.errorMessage != null) {
+          ErrorHandler.showErrorSnackBar(
+            context,
+            ErrorHandler.getReadableError(authProvider.errorMessage!),
+          );
+        }
+      }
     }
   }
 
@@ -94,10 +126,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   
                   // Login Button
-                  CustomButton(
-                    text: 'Login',
-                    onPressed: _handleLogin,
-                    isLoading: _isLoading,
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      return CustomButton(
+                        text: 'Login',
+                        onPressed: authProvider.isLoading 
+                            ? null 
+                            : () {
+                                _handleLogin();
+                              },
+                        isLoading: authProvider.isLoading,
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   
@@ -111,6 +151,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         color: AppTheme.darkGreen,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  
+                  // Test/Debug Link
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/test');
+                    },
+                    child: const Text(
+                      '🔧 Test & Debug',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
                       ),
                     ),
                   ),

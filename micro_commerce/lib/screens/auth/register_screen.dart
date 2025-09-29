@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../utils/theme.dart';
+import '../../utils/error_handler.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/cart_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,17 +20,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
     if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isLoading = true);
-      // TODO: Implement actual registration logic later
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        // Mock successful registration
-        Navigator.pushReplacementNamed(context, '/home');
-      });
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      
+      final success = await authProvider.register(
+        _emailController.text.trim(),
+        _passwordController.text,
+        _nameController.text.trim(),
+      );
+
+      if (success) {
+        // Set user ID in cart provider
+        cartProvider.setUserId(authProvider.firebaseUser?.uid);
+        
+        if (mounted) {
+          ErrorHandler.showSuccessSnackBar(context, 'Registration successful!');
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        if (mounted && authProvider.errorMessage != null) {
+          ErrorHandler.showErrorSnackBar(
+            context,
+            ErrorHandler.getReadableError(authProvider.errorMessage!),
+          );
+        }
+      }
     }
   }
 
@@ -115,10 +136,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
                   
                   // Register Button
-                  CustomButton(
-                    text: 'Create Account',
-                    onPressed: _handleRegister,
-                    isLoading: _isLoading,
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      return CustomButton(
+                        text: 'Create Account',
+                        onPressed: authProvider.isLoading 
+                            ? null 
+                            : () {
+                                _handleRegister();
+                              },
+                        isLoading: authProvider.isLoading,
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   

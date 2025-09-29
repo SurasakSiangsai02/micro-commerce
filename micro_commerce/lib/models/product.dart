@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Product {
   final String id;
   final String name;
@@ -8,6 +10,8 @@ class Product {
   final int stock;
   final double rating;
   final int reviewCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Product({
     required this.id,
@@ -19,7 +23,41 @@ class Product {
     required this.stock,
     this.rating = 0.0,
     this.reviewCount = 0,
-  });
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+
+  factory Product.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Product(
+      id: doc.id,
+      name: data['name'] ?? '',
+      description: data['description'] ?? '',
+      price: (data['price'] ?? 0).toDouble(),
+      images: List<String>.from(data['images'] ?? []),
+      category: data['category'] ?? '',
+      stock: data['stock'] ?? 0,
+      rating: (data['rating'] ?? 0).toDouble(),
+      reviewCount: data['reviewCount'] ?? 0,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'description': description,
+      'price': price,
+      'images': images,
+      'category': category,
+      'stock': stock,
+      'rating': rating,
+      'reviewCount': reviewCount,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
 
   // Mock data for testing UI
   static List<Product> mockProducts = [
