@@ -22,25 +22,71 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   void initState() {
     super.initState();
-    // TODO: Load actual user data later
-    _nameController.text = 'John Doe';
-    _phoneController.text = '0123456789';
-    _addressController.text = '123 Sample Street, City, Country';
+    _loadUserProfile();
   }
 
-  void _handleSave() {
+  /// โหลดข้อมูล Profile จาก Firebase
+  void _loadUserProfile() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userProfile = authProvider.userProfile;
+    final firebaseUser = authProvider.firebaseUser;
+
+    if (firebaseUser != null) {
+      // ใช้ข้อมูลจาก Firebase Auth และ Firestore
+      _nameController.text = userProfile?.name ?? firebaseUser.displayName ?? '';
+      _phoneController.text = userProfile?.phone ?? '';
+      _addressController.text = userProfile?.address ?? '';
+    }
+  }
+
+  void _handleSave() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
-      // TODO: Implement actual save logic later
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully'),
-            backgroundColor: AppTheme.successGreen,
-          ),
-        );
-      });
+      
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        
+        // Prepare the update data
+        final updateData = {
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(),
+        };
+        
+        // Update user profile using AuthProvider which handles Firebase update and reload
+        await authProvider.updateProfile(updateData);
+        
+        if (mounted) {
+          setState(() => _isLoading = false);
+          
+          // Check for any errors from the AuthProvider
+          if (authProvider.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(authProvider.errorMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile updated successfully'),
+                backgroundColor: AppTheme.successGreen,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating profile: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

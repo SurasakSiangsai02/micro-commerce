@@ -1,5 +1,18 @@
 import 'package:flutter/material.dart';
 
+/// ⚠️ ErrorHandler - ระบบจัดการ Error แบบมืออาชีพ
+/// 
+/// ฟีเจอร์:
+/// • แสดง Error Messages แบบ User-friendly
+/// • แยกประเภท Error (Network, Auth, Database, etc.)
+/// • Loading States และ Retry mechanisms
+/// • SnackBar และ Dialog notifications
+/// 
+/// ใช้งานใน:
+/// - AuthService (Login/Register errors)  
+/// - DatabaseService (Network/Firestore errors)
+/// - Providers (State management errors)
+/// - UI Screens (User interaction errors)
 class ErrorHandler {
   static void showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(

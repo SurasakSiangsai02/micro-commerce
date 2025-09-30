@@ -1,5 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// 🛍️ Product Model - Schema สำหรับสินค้า
+/// 
+/// ฟิลด์หลัก:
+/// • Basic Info: id, name, description, price
+/// • Media: images (รองรับหลายรูป)
+/// • Categorization: category
+/// • Inventory: stock
+/// • Social Proof: rating, reviewCount
+/// • Timestamps: createdAt, updatedAt
+/// 
+/// การใช้งาน:
+/// - แปลงจาก/เป็น Firestore Document
+/// - UI Display ใน Product Cards
+/// - Cart Items และ Order Items
 class Product {
   final String id;
   final String name;

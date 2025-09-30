@@ -5,6 +5,8 @@ class User {
   final String email;
   final String name;
   final String? photoUrl;
+  final String? phone;
+  final String? address;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +15,8 @@ class User {
     required this.email,
     required this.name,
     this.photoUrl,
+    this.phone,
+    this.address,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,6 +28,8 @@ class User {
       email: data['email'] ?? '',
       name: data['name'] ?? '',
       photoUrl: data['photoUrl'],
+      phone: data['phone'],
+      address: data['address'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -33,7 +39,9 @@ class User {
     return {
       'email': email,
       'name': name,
-      'photoUrl': photoUrl,
+      'photoUrl': photoUrl ?? '',
+      'phone': phone ?? '',
+      'address': address ?? '',
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }

@@ -2,26 +2,43 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import '../models/user.dart' as user_model;
 
+/// 🔥 DatabaseService - หัวใจของระบบ E-commerce
+/// 
+/// รับผิดชอบ:
+/// - เชื่อมต่อกับ Firebase Firestore (ฐานข้อมูล Cloud)
+/// - จัดการ CRUD operations ทั้งหมด (Create, Read, Update, Delete)
+/// - รองรับ Real-time data sync
+/// 
+/// Schema ใน Firestore:
+/// • products/          - สินค้าทั้งหมด
+/// • users/             - ข้อมูลผู้ใช้
+/// • orders/            - ประวัติคำสั่งซื้อ
+/// • users/{id}/cart/   - ตะกร้าสินค้าแต่ละคน
 class DatabaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Products Collection
+  /// === FIRESTORE COLLECTIONS ===
+  /// เชื่อมต่อกับ Collections ต่างๆ ใน Firebase
+  
   static CollectionReference get productsCollection =>
       _firestore.collection('products');
 
-  // Users Collection
   static CollectionReference get usersCollection =>
       _firestore.collection('users');
 
-  // Orders Collection
   static CollectionReference get ordersCollection =>
       _firestore.collection('orders');
 
-  // Cart Collection (subcollection of users)
+  /// Cart เป็น subcollection - แต่ละ user มีตะกร้าของตัวเอง
   static CollectionReference cartCollection(String userId) =>
       _firestore.collection('users').doc(userId).collection('cart');
 
-  // PRODUCTS CRUD
+  /// === 🛍️ PRODUCTS CRUD (READ-ONLY) ===
+  /// อ่านข้อมูลสินค้าจาก Firestore
+  /// • รองรับ Real-time updates
+  /// • Search และ Filter ตามหมวดหมู่
+  /// • Error handling ครบถ้วน
+  
   static Future<List<Product>> getProducts() async {
     try {
       final querySnapshot = await productsCollection.get();
@@ -226,10 +243,12 @@ class DatabaseService {
   static Future<void> updateUserProfile(
       String userId, Map<String, dynamic> data) async {
     try {
-      await usersCollection.doc(userId).update({
+      // ใช้ set แทน update เพื่อให้สามารถสร้างเอกสารใหม่ได้หากยังไม่มี
+      // SetOptions(merge: true) จะรวมข้อมูลเก่าและใหม่เข้าด้วยกัน
+      await usersCollection.doc(userId).set({
         ...data,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }

@@ -1,3 +1,25 @@
+/// 🚀 Micro-Commerce E-commerce App
+/// 
+/// ระบบ E-commerce ครบวงจร ประกอบด้วย:
+/// 
+/// 🔥 Backend & Database:
+/// • Firebase Authentication (Login/Register)  
+/// • Firestore Database (Products, Users, Orders, Cart)
+/// • Real-time data synchronization
+/// 
+/// 🛒 Core Features:
+/// • Product Catalog with Search & Filter
+/// • Shopping Cart with Persistent Storage
+/// • User Authentication & Profiles
+/// • Order Management System
+/// • Real-time Cart Sync across devices
+/// 
+/// 🏗️ Architecture:
+/// • Provider Pattern (State Management)
+/// • Service Layer (Auth, Database)
+/// • Error Handling & Loading States
+/// • Responsive UI Design
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,6 +39,7 @@ import 'screens/common/home_screen.dart';
 import 'screens/debug/test_screen.dart';
 import 'models/product.dart';
 
+/// Entry point - เริ่มต้น Firebase และ App
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(

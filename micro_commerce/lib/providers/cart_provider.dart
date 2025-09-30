@@ -3,6 +3,19 @@ import '../models/product.dart';
 import '../models/user.dart' as user_model;
 import '../services/database_service.dart';
 
+/// 🛒 CartProvider - จัดการตะกร้าสินค้า + State Management
+/// 
+/// ฟีเจอร์:
+/// • Add/Remove/Update สินค้าในตะกร้า
+/// • Sync กับ Firestore แบบ Real-time
+/// • คำนวณราคารวม, ภาษี, จำนวน
+/// • สร้าง Order และเคลียร์ตะกร้า
+/// • Error Handling + Loading States
+/// 
+/// เชื่อมต่อกับ:
+/// - DatabaseService (CRUD operations)
+/// - UI (ผ่าน ChangeNotifier)
+/// - Firestore users/{id}/cart subcollection
 class CartProvider extends ChangeNotifier {
   List<user_model.CartItem> _items = [];
   bool _isLoading = false;

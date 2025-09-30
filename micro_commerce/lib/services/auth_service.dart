@@ -1,14 +1,25 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// 🔐 AuthService - ระบบ Authentication ครบวงจร
+/// 
+/// ฟีเจอร์:
+/// • Login/Register ด้วย Email/Password
+/// • Password Reset
+/// • Real-time Auth State Monitoring  
+/// • Auto สร้าง User Profile ใน Firestore
+/// • Error Handling ทุกกรณี (wrong password, user not found, etc.)
+/// 
+/// เชื่อมต่อกับ:
+/// - Firebase Authentication (จัดการ login/logout)
+/// - Firestore users collection (เก็บ profile)
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get current user
   static User? get currentUser => _auth.currentUser;
 
-  // Auth state changes stream
+  /// Stream สำหรับฟัง Auth state changes (login/logout)
   static Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Sign in with email and password
