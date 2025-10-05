@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/product.dart';
 import '../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
+import '../../providers/cart_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -243,15 +245,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     const SizedBox(width: 16),
                     // Add to Cart Button
                     Expanded(
-                      child: CustomButton(
-                        text: 'Add to Cart - \$${(widget.product.price * quantity).toStringAsFixed(2)}',
-                        onPressed: () {
-                          // TODO: Add to cart logic
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Added to cart'),
-                              backgroundColor: AppTheme.successGreen,
-                            ),
+                      child: Consumer<CartProvider>(
+                        builder: (context, cartProvider, child) {
+                          return CustomButton(
+                            text: 'Add to Cart - \$${(widget.product.price * quantity).toStringAsFixed(2)}',
+                            isLoading: cartProvider.isLoading,
+                            onPressed: () async {
+                              await cartProvider.addToCart(widget.product, quantity);
+                              
+                              if (cartProvider.errorMessage != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(cartProvider.errorMessage!),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Added ${widget.product.name} to cart'),
+                                    backgroundColor: AppTheme.successGreen,
+                                  ),
+                                );
+                              }
+                            },
                           );
                         },
                       ),

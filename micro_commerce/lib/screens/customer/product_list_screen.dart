@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/product.dart';
 import '../../utils/theme.dart';
 import '../../utils/error_handler.dart' as error_utils;
 import '../../utils/test_data_seeder.dart';
 import '../../widgets/product_card.dart';
 import '../../services/database_service.dart';
+import '../../providers/cart_provider.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -171,18 +173,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             )
                           : RefreshIndicator(
                               onRefresh: _loadProducts,
-                              child: GridView.builder(
-                                padding: const EdgeInsets.all(16),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 16,
-                                  crossAxisSpacing: 16,
-                                  childAspectRatio: 0.75,
-                                ),
-                                itemCount: _filteredProducts.length,
-                                itemBuilder: (context, index) {
-                                  final product = _filteredProducts[index];
-                                  return ProductCard(
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  // Responsive grid based on screen width
+                                  final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                                  final screenWidth = constraints.maxWidth;
+                                  final cardWidth = (screenWidth - (16 * (crossAxisCount + 1))) / crossAxisCount;
+                                  final aspectRatio = cardWidth / (cardWidth * 1.4); // Height is 1.4x width
+                                  
+                                  return GridView.builder(
+                                    padding: const EdgeInsets.all(16),
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: crossAxisCount,
+                                      mainAxisSpacing: 16,
+                                      crossAxisSpacing: 16,
+                                      childAspectRatio: aspectRatio,
+                                    ),
+                                    itemCount: _filteredProducts.length,
+                                    itemBuilder: (context, index) {
+                                      final product = _filteredProducts[index];
+                                      return ProductCard(
                                     product: product,
                                     onTap: () {
                                       Navigator.pushNamed(
@@ -191,7 +201,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         arguments: product,
                                       );
                                     },
+                                    onAddToCart: () {
+                                      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                                      cartProvider.addToCart(product, 1);
+                                      
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Added ${product.name} to cart'),
+                                          backgroundColor: AppTheme.successGreen,
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
                                   );
+                                },
+                              );
                                 },
                               ),
                             ),

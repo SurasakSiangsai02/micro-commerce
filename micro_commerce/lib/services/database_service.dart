@@ -207,13 +207,24 @@ class DatabaseService {
   }
 
   static Stream<List<user_model.Order>> getUserOrdersStream(String userId) {
+    // ใช้ query ง่ายๆ เพื่อหลีกเลี่ยง composite index requirement
     return ordersCollection
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => user_model.Order.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final orders = snapshot.docs
+              .map((doc) => user_model.Order.fromFirestore(doc))
+              .toList();
+          
+          // เรียงตามวันที่ใน client side (ใหม่สุดขึ้นก่อน)
+          orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          
+          return orders;
+        })
+        .handleError((error) {
+          print('Error loading orders: $error');
+          return <user_model.Order>[];
+        });
   }
 
   static Future<void> updateOrderStatus(String orderId, String status) async {
@@ -251,6 +262,160 @@ class DatabaseService {
       }, SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📦 ORDER OPERATIONS (CREATE, READ, UPDATE)
+  // ═══════════════════════════════════════════════════════════════
+
+  /// สร้าง Order ใหม่หลังจากชำระเงินสำเร็จ (แทนที่ method เดิม)
+  /// 
+  /// Parameters:
+  /// - userId: ID ของผู้ใช้ที่สั่งซื้อ
+  /// - cartItems: รายการสินค้าในตะกร้า
+  /// - orderData: ข้อมูล order (shipping, payment, etc.)
+  /// 
+  /// Returns: Order ID ที่สร้างใหม่
+  static Future<String> createOrderWithPayment(String userId, List<user_model.CartItem> cartItems, Map<String, dynamic> orderData) async {
+    try {
+      // คำนวณราคารวม
+      final subtotal = cartItems.fold<double>(0, (sum, item) => sum + item.total);
+      final tax = subtotal * 0.07; // 7% tax
+      final total = subtotal + tax;
+
+      // สร้าง Order document
+      final orderRef = ordersCollection.doc();
+      final order = user_model.Order(
+        id: orderRef.id,
+        userId: userId,
+        items: cartItems,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        status: 'confirmed',
+        paymentMethod: orderData['paymentMethod'] ?? 'credit_card',
+        shippingAddress: orderData['shippingAddress'] ?? {},
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // บันทึกลง Firestore
+      await orderRef.set(order.toFirestore());
+
+      // ลดจำนวนสินค้าในคลัง
+      for (final item in cartItems) {
+        await _updateProductStock(item.productId, item.quantity);
+      }
+
+      // ล้างตะกร้าหลังจากสั่งซื้อสำเร็จ
+      await clearCart(userId);
+
+      print('✅ Order created successfully: ${orderRef.id}');
+      return orderRef.id;
+    } catch (e) {
+      print('❌ Error creating order: $e');
+      throw Exception('Failed to create order: $e');
+    }
+  }
+
+  /// อัปเดตจำนวนสินค้าในคลังหลังจากสั่งซื้อ
+  static Future<void> _updateProductStock(String productId, int quantity) async {
+    try {
+      final productRef = productsCollection.doc(productId);
+      await productRef.update({
+        'stock': FieldValue.increment(-quantity),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('⚠️ Warning: Failed to update stock for product $productId: $e');
+      // ไม่ throw error เพราะไม่อยากให้ order ล้มเหลวเพราะ stock update
+    }
+  }
+
+  /// ดึงรายการ Orders ของผู้ใช้ (แทนที่ method เดิม)
+  /// 
+  /// Parameters:
+  /// - userId: ID ของผู้ใช้
+  /// - limit: จำนวน orders ที่ต้องการ (default: 10)
+  /// 
+  /// Returns: List<Order> เรียงตามวันที่ล่าสุดก่อน
+  static Future<List<user_model.Order>> getUserOrdersWithDetails(String userId, {int limit = 10}) async {
+    try {
+      final querySnapshot = await ordersCollection
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      final orders = querySnapshot.docs
+          .map((doc) => user_model.Order.fromFirestore(doc))
+          .toList();
+
+      print('✅ Fetched ${orders.length} orders for user: $userId');
+      return orders;
+    } catch (e) {
+      print('❌ Error fetching user orders: $e');
+      throw Exception('Failed to fetch orders: $e');
+    }
+  }
+
+  /// ดึงข้อมูล Order ตาม ID
+  static Future<user_model.Order?> getOrderById(String orderId) async {
+    try {
+      final doc = await ordersCollection.doc(orderId).get();
+      if (doc.exists) {
+        return user_model.Order.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error fetching order: $e');
+      throw Exception('Failed to fetch order: $e');
+    }
+  }
+
+  /// อัปเดตสถานะ Order
+  static Future<void> updateOrderStatusById(String orderId, String status) async {
+    try {
+      await ordersCollection.doc(orderId).update({
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ Order $orderId status updated to: $status');
+    } catch (e) {
+      print('❌ Error updating order status: $e');
+      throw Exception('Failed to update order status: $e');
+    }
+  }
+
+  /// Stream สำหรับติดตาม Orders แบบ Real-time
+  static Stream<List<user_model.Order>> watchUserOrdersStream(String userId, {int limit = 10}) {
+    try {
+      // ลองใช้ query แบบซับซ้อนก่อน
+      return ordersCollection
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => user_model.Order.fromFirestore(doc))
+              .toList());
+    } catch (e) {
+      // ถ้า composite index ไม่มี ใช้ query ง่ายๆ แล้วเรียงใน client side
+      return ordersCollection
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .map((snapshot) {
+            final orders = snapshot.docs
+                .map((doc) => user_model.Order.fromFirestore(doc))
+                .toList();
+            
+            // เรียงตามวันที่ใน client side
+            orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            
+            // จำกัดจำนวน
+            return orders.take(limit).toList();
+          });
     }
   }
 }

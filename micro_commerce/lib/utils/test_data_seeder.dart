@@ -93,8 +93,8 @@ class TestDataSeeder {
           'description': 'Multi-port USB-C hub with HDMI, USB 3.0, and SD card slots.',
           'price': 49.99,
           'images': [
-            'https://images.unsplash.com/photo-1591290619449-a6c8ad3e1346?w=400',
-            'https://images.unsplash.com/photo-1558501524-ba15e9d5a9d1?w=400',
+            'https://picsum.photos/400/600',
+            'https://picsum.photos/400/601',
           ],
           'category': 'Electronics',
           'stock': 60,

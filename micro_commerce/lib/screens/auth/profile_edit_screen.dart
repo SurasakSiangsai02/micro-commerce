@@ -243,6 +243,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Order History Button
+                CustomButton(
+                  text: 'Order History',
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/order-history');
+                  },
+                  isLoading: false,
+                  backgroundColor: AppTheme.lightGreen,
+                ),
+                const SizedBox(height: 16),
+
                 // Logout Button
                 CustomButton(
                   text: 'Logout',
