@@ -11,6 +11,11 @@ class AppTheme {
   static const errorRed = Color(0xFFE53935);
   static const successGreen = Color(0xFF43A047);
   static const warningAmber = Color(0xFFFFA000);
+  
+  // Admin Dashboard Colors
+  static const lightBlue = Color(0xFF3B82F6);
+  static const lightOrange = Color(0xFFF97316);
+  static const lightPurple = Color(0xFF8B5CF6);
 
   // Text Styles
   static const TextStyle headlineLarge = TextStyle(

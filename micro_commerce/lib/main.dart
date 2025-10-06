@@ -23,7 +23,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
+// import 'package:firebase_app_check/firebase_app_check.dart'; // ปิดชั่วคราว
 import 'firebase_options.dart';
 import 'config/app_config.dart';
 import 'utils/theme.dart';
@@ -32,15 +32,15 @@ import 'providers/cart_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
-import 'screens/auth/profile_edit_screen.dart';
-import 'screens/customer/product_list_screen.dart';
 import 'screens/customer/product_detail_screen.dart';
-import 'screens/customer/cart_screen.dart';
 import 'screens/customer/checkout_screen.dart';
 import 'screens/customer/order_confirmation_screen.dart';
 import 'screens/customer/order_history_screen.dart';
 import 'screens/common/home_screen.dart';
 import 'screens/debug/test_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/admin_debug_screen.dart';
+import 'screens/admin/user_role_management_screen.dart';
 import 'models/product.dart';
 
 /// Entry point - เริ่มต้น Environment Variables, Firebase, Stripe และ App
@@ -57,6 +57,8 @@ void main() async {
     );
     
     // เริ่มต้น Firebase App Check (ป้องกัน abuse)
+    // ปิดชั่วคราวเพื่อแก้ปัญหา API not enabled
+    /*
     if (AppConfig.isDevelopment) {
       // ใช้ Debug provider สำหรับ development
       await FirebaseAppCheck.instance.activate(
@@ -72,6 +74,7 @@ void main() async {
         webProvider: ReCaptchaV3Provider('your-recaptcha-site-key'),
       );
     }
+    */
     
     // เริ่มต้น Stripe Payment
     await PaymentService.initialize();
@@ -146,6 +149,9 @@ class MyApp extends StatelessWidget {
           );
         },
         '/order-history': (context) => const OrderHistoryScreen(),
+        '/admin': (context) => const AdminDashboardScreen(),
+        '/admin/debug': (context) => const AdminDebugScreen(),
+        '/admin/user-roles': (context) => const UserRoleManagementScreen(),
         '/test': (context) => const TestScreen(),
       },
       onGenerateRoute: (settings) {

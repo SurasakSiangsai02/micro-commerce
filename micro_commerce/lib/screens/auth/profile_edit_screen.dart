@@ -254,6 +254,29 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Admin Dashboard Button (only for admin/moderator)
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    final user = authProvider.userProfile;
+                    if (user != null && user.isModerator) {
+                      return Column(
+                        children: [
+                          CustomButton(
+                            text: '🔧 Admin Dashboard',
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/admin');
+                            },
+                            isLoading: false,
+                            backgroundColor: Colors.orange,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+
                 // Logout Button
                 CustomButton(
                   text: 'Logout',

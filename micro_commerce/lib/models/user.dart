@@ -1,5 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum UserRole {
+  customer,
+  admin,
+  moderator;
+
+  String get displayName {
+    switch (this) {
+      case UserRole.customer:
+        return 'ลูกค้า';
+      case UserRole.admin:
+        return 'ผู้ดูแลระบบ';
+      case UserRole.moderator:
+        return 'ผู้ช่วยดูแลระบบ';
+    }
+  }
+
+  static UserRole fromString(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return UserRole.admin;
+      case 'moderator':
+        return UserRole.moderator;
+      default:
+        return UserRole.customer;
+    }
+  }
+}
+
 class User {
   final String uid;
   final String email;
@@ -7,6 +35,7 @@ class User {
   final String? photoUrl;
   final String? phone;
   final String? address;
+  final UserRole role;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,9 +46,14 @@ class User {
     this.photoUrl,
     this.phone,
     this.address,
+    this.role = UserRole.customer,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  bool get isAdmin => role == UserRole.admin;
+  bool get isModerator => role == UserRole.moderator || role == UserRole.admin;
+  bool get canManageProducts => role == UserRole.admin || role == UserRole.moderator;
 
   factory User.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -30,6 +64,7 @@ class User {
       photoUrl: data['photoUrl'],
       phone: data['phone'],
       address: data['address'],
+      role: UserRole.fromString(data['role'] ?? 'customer'),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -42,6 +77,7 @@ class User {
       'photoUrl': photoUrl ?? '',
       'phone': phone ?? '',
       'address': address ?? '',
+      'role': role.name,  // save enum as string
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }

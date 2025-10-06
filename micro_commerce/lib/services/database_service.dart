@@ -33,10 +33,11 @@ class DatabaseService {
   static CollectionReference cartCollection(String userId) =>
       _firestore.collection('users').doc(userId).collection('cart');
 
-  /// === 🛍️ PRODUCTS CRUD (READ-ONLY) ===
-  /// อ่านข้อมูลสินค้าจาก Firestore
+  /// === 🛍️ PRODUCTS CRUD ===
+  /// จัดการข้อมูลสินค้าใน Firestore
   /// • รองรับ Real-time updates
   /// • Search และ Filter ตามหมวดหมู่
+  /// • Add, Update, Delete สินค้า
   /// • Error handling ครบถ้วน
   
   static Future<List<Product>> getProducts() async {
@@ -91,6 +92,54 @@ class DatabaseService {
           .toList();
     } catch (e) {
       throw Exception('Failed to search products: $e');
+    }
+  }
+
+  /// ➕ เพิ่มสินค้าใหม่
+  static Future<String> addProduct(Map<String, dynamic> productData) async {
+    try {
+      final docRef = await productsCollection.add({
+        ...productData,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to add product: $e');
+    }
+  }
+
+  /// ✏️ แก้ไขสินค้า
+  static Future<void> updateProduct(String productId, Map<String, dynamic> productData) async {
+    try {
+      await productsCollection.doc(productId).update({
+        ...productData,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to update product: $e');
+    }
+  }
+
+  /// 🗑️ ลบสินค้า
+  static Future<void> deleteProduct(String productId) async {
+    try {
+      await productsCollection.doc(productId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete product: $e');
+    }
+  }
+
+  /// 📊 ดึงสินค้าตาม ID
+  static Future<Product?> getProductById(String productId) async {
+    try {
+      final doc = await productsCollection.doc(productId).get();
+      if (doc.exists) {
+        return Product.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get product: $e');
     }
   }
 
@@ -388,7 +437,17 @@ class DatabaseService {
     }
   }
 
-  /// Stream สำหรับติดตาม Orders แบบ Real-time
+  /// Stream สำหรับติดตาม Orders แบบ Real-time (สำหรับ Admin)
+  static Stream<List<user_model.Order>> getAllOrdersStream() {
+    return ordersCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => user_model.Order.fromFirestore(doc))
+            .toList());
+  }
+
+  /// Stream สำหรับติดตาม Orders แบบ Real-time (สำหรับ User)
   static Stream<List<user_model.Order>> watchUserOrdersStream(String userId, {int limit = 10}) {
     try {
       // ลองใช้ query แบบซับซ้อนก่อน
