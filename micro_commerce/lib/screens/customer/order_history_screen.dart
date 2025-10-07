@@ -271,6 +271,29 @@ class OrderCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
+              // Coupon info (if applied)
+              if (order.hasCoupon) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_offer,
+                      size: 16,
+                      color: AppTheme.lightGreen,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Coupon applied: ${order.couponCode}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.lightGreen,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+
               // Total Amount
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -443,6 +466,10 @@ class OrderDetailScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     _buildSummaryRow('Subtotal', order.subtotal),
                     _buildSummaryRow('Tax', order.tax),
+                    if (order.hasCoupon) ...[
+                      _buildCouponRow(order),
+                      _buildSummaryRow('Discount', -order.discountAmount, isDiscount: true),
+                    ],
                     const Divider(height: 24),
                     _buildSummaryRow('Total', order.total, isTotal: true),
                   ],
@@ -480,7 +507,40 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, {bool isTotal = false}) {
+  Widget _buildCouponRow(dynamic order) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.local_offer,
+                size: 16,
+                color: AppTheme.lightGreen,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Coupon (${order.couponCode})',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+          Text(
+            '${order.couponType == 'percentage' ? '${order.couponValue}%' : '\$${order.couponValue?.toStringAsFixed(2)}'}',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.lightGreen,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double amount, {bool isTotal = false, bool isDiscount = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -498,7 +558,11 @@ class OrderDetailScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: isTotal ? 16 : 14,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? AppTheme.darkGreen : null,
+              color: isTotal 
+                  ? AppTheme.darkGreen 
+                  : isDiscount 
+                      ? Colors.green
+                      : null,
             ),
           ),
         ],

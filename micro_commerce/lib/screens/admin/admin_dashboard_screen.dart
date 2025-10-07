@@ -6,7 +6,9 @@ import 'product_management_screen.dart';
 import 'order_management_screen.dart';
 import 'user_management_screen.dart';
 import 'user_role_management_screen.dart';
+import 'admin_chat_screen.dart';
 import 'analytics_screen.dart';
+import 'coupon_management_screen.dart';
 
 /// 🔧 AdminDashboardScreen - หน้า Dashboard สำหรับ Admin
 /// 
@@ -280,6 +282,38 @@ class AdminDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
+                
+                // Chat Management
+                _buildManagementCard(
+                  context,
+                  '💬 จัดการแชท',
+                  'ตอบกลับลูกค้า ดูประวัติการสนทนา',
+                  Icons.chat,
+                  AppTheme.lightBlue,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdminChatScreen(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Coupon Management
+                _buildManagementCard(
+                  context,
+                  '🎟️ จัดการคูปอง',
+                  'สร้างและจัดการคูปองส่วนลด',
+                  Icons.local_offer,
+                  Colors.deepOrange,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CouponManagementScreen(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 
                 // Analytics
                 _buildManagementCard(

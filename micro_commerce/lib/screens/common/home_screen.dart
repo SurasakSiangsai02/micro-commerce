@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../customer/product_list_screen.dart';
 import '../customer/cart_screen.dart';
+import '../customer/customer_chat_screen.dart';
 import '../auth/profile_edit_screen.dart';
 import '../../utils/theme.dart';
 import '../../providers/auth_provider.dart';
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const ProductListScreen(),
     const CartScreen(),
+    const CustomerChatScreen(),
     const ProfileEditScreen(),
   ];
 
@@ -87,12 +89,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: 'Cart',
               ),
               const BottomNavigationBarItem(
+                icon: Icon(Icons.chat),
+                label: 'Chat',
+              ),
+              const BottomNavigationBarItem(
                 icon: Icon(Icons.person),
                 label: 'Profile',
               ),
             ],
             currentIndex: _selectedIndex,
             selectedItemColor: AppTheme.darkGreen,
+            unselectedItemColor: Colors.grey.shade600,
+            backgroundColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
             onTap: _onItemTapped,
           );
         },

@@ -76,10 +76,31 @@ class OrderConfirmationScreen extends StatelessWidget {
                         order?.id != null ? '#${order!.id.substring(0, 8).toUpperCase()}' : '#ORD123456'
                       ),
                       const Divider(height: 24),
-                      _buildOrderDetail(
-                        'Total Amount', 
-                        totalAmount != null ? '\฿${totalAmount!.toStringAsFixed(2)}' : '\฿0.00'
-                      ),
+                      // Order Summary with breakdown
+                      if (order != null) ...[
+                        _buildOrderDetail('Subtotal', '\$${order!.subtotal.toStringAsFixed(2)}'),
+                        if (order!.hasCoupon) ...[
+                          const Divider(height: 16),
+                          _buildOrderDetail(
+                            'Discount (${order!.couponCode})', 
+                            '-\$${order!.discountAmount.toStringAsFixed(2)}',
+                            valueColor: Colors.green.shade600,
+                          ),
+                        ],
+                        const Divider(height: 16),
+                        _buildOrderDetail('Tax', '\$${order!.tax.toStringAsFixed(2)}'),
+                        const Divider(height: 16),
+                        _buildOrderDetail(
+                          'Total Amount', 
+                          '\$${totalAmount != null ? totalAmount!.toStringAsFixed(2) : order!.total.toStringAsFixed(2)}',
+                          isTotal: true,
+                        ),
+                      ] else ...[
+                        _buildOrderDetail(
+                          'Total Amount', 
+                          totalAmount != null ? '\$${totalAmount!.toStringAsFixed(2)}' : '\$0.00'
+                        ),
+                      ],
                       const Divider(height: 24),
                       _buildOrderDetail(
                         'Payment Method', 
@@ -188,20 +209,24 @@ class OrderConfirmationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderDetail(String label, String value) {
+  Widget _buildOrderDetail(String label, String value, {Color? valueColor, bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.grey,
+          style: TextStyle(
+            color: isTotal ? Colors.black : Colors.grey,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            fontSize: isTotal ? 16 : 14,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
+            color: valueColor ?? (isTotal ? AppTheme.darkGreen : Colors.black),
+            fontSize: isTotal ? 16 : 14,
           ),
         ),
       ],

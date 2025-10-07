@@ -329,9 +329,12 @@ class DatabaseService {
   static Future<String> createOrderWithPayment(String userId, List<user_model.CartItem> cartItems, Map<String, dynamic> orderData) async {
     try {
       // คำนวณราคารวม
-      final subtotal = cartItems.fold<double>(0, (sum, item) => sum + item.total);
-      final tax = subtotal * 0.07; // 7% tax
-      final total = subtotal + tax;
+      final originalTotal = cartItems.fold<double>(0, (sum, item) => sum + item.total);
+      final discountAmount = orderData['discountAmount'] ?? 0.0;
+      final subtotalAfterDiscount = originalTotal - discountAmount;
+      final taxRate = 0.08; // 8% tax
+      final taxAmount = subtotalAfterDiscount * taxRate;
+      final finalTotal = orderData['finalTotal'] ?? (subtotalAfterDiscount + taxAmount);
 
       // สร้าง Order document
       final orderRef = ordersCollection.doc();
@@ -339,14 +342,17 @@ class DatabaseService {
         id: orderRef.id,
         userId: userId,
         items: cartItems,
-        subtotal: subtotal,
-        tax: tax,
-        total: total,
+        subtotal: originalTotal,
+        tax: taxAmount,
+        total: finalTotal,
         status: 'confirmed',
         paymentMethod: orderData['paymentMethod'] ?? 'credit_card',
         shippingAddress: orderData['shippingAddress'] ?? {},
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        couponCode: orderData['couponCode'],
+        couponId: orderData['couponId'],
+        discountAmount: discountAmount,
       );
 
       // บันทึกลง Firestore

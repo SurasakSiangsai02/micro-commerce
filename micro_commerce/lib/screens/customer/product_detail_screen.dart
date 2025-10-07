@@ -4,6 +4,9 @@ import '../../models/product.dart';
 import '../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../screens/customer/customer_chat_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -20,6 +23,93 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int selectedImageIndex = 0;
   int quantity = 1;
+
+  /// 💬 เริ่มแชทเกี่ยวกับสินค้านี้
+  Future<void> _startProductChat(BuildContext context) async {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (authProvider.userProfile == null) {
+      // ให้ล็อกอินก่อน
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login to start chatting'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // แสดง loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Starting chat about product...'),
+            ],
+          ),
+        ),
+      );
+
+      // สร้างห้องแชทใหม่พร้อมข้อมูลสินค้า
+      final roomId = await chatProvider.createChatRoom(
+        productId: widget.product.id,
+        productName: widget.product.name,
+        productImage: widget.product.images.isNotEmpty ? widget.product.images.first : null,
+        productPrice: widget.product.price,
+      );
+      
+      // ปิด loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+      
+      if (roomId != null) {
+        // เปิดห้องแชท
+        final success = await chatProvider.openChatRoom(roomId);
+        
+        if (success) {
+          // ส่งข้อความเริ่มต้นเกี่ยวกับสินค้า
+          await chatProvider.sendMessage(
+            'สวัสดีครับ ผมสนใจสินค้า "${widget.product.name}" ราคา \$${widget.product.price}\\n\\nมีคำถามเกี่ยวกับสินค้านี้ครับ'
+          );
+          
+          // นำทางไปหน้าแชท
+          if (context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const CustomerChatScreen(),
+              ),
+            );
+          }
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(chatProvider.error ?? 'Failed to start chat'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // ปิด loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error starting chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,9 +323,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: IconButton(
-                        onPressed: () {
-                          // TODO: Navigate to chat screen
-                        },
+                        onPressed: () => _startProductChat(context),
                         icon: const Icon(
                           Icons.chat_outlined,
                           color: AppTheme.darkGreen,

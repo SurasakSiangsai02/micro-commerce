@@ -133,6 +133,11 @@ class Order {
   final Map<String, dynamic> shippingAddress;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // Coupon related fields
+  final String? couponCode;
+  final String? couponId;
+  final double discountAmount;
 
   Order({
     required this.id,
@@ -146,6 +151,9 @@ class Order {
     required this.shippingAddress,
     required this.createdAt,
     required this.updatedAt,
+    this.couponCode,
+    this.couponId,
+    this.discountAmount = 0.0,
   });
 
   factory Order.fromFirestore(DocumentSnapshot doc) {
@@ -164,6 +172,9 @@ class Order {
       shippingAddress: data['shippingAddress'] ?? {},
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      couponCode: data['couponCode'],
+      couponId: data['couponId'],
+      discountAmount: (data['discountAmount'] ?? 0).toDouble(),
     );
   }
 
@@ -179,6 +190,19 @@ class Order {
       'shippingAddress': shippingAddress,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'couponCode': couponCode,
+      'couponId': couponId,
+      'discountAmount': discountAmount,
     };
   }
+
+  /// ตรวจสอบว่าใช้คูปองหรือไม่
+  bool get hasCoupon => couponCode != null && couponCode!.isNotEmpty;
+
+  /// ราคาก่อนส่วนลด
+  double get originalTotal => total + discountAmount;
+
+  /// ข้อความแสดงการประหยัด
+  String get savingsText => 
+    hasCoupon ? 'ประหยัดได้ \$${discountAmount.toStringAsFixed(2)} จากคูปอง $couponCode' : '';
 }

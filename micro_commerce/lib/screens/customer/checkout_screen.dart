@@ -5,6 +5,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/coupon_provider.dart';
 import '../../services/payment_service.dart';
 import '../../services/database_service.dart';
 import '../../models/user.dart' as user_model;
@@ -28,6 +29,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _cvcController = TextEditingController();
   final _cardHolderController = TextEditingController();
   
+  // Coupon Controller
+  final _couponController = TextEditingController();
+  
   String _selectedPaymentMethod = 'creditCard';
   bool _isLoading = false;
 
@@ -38,6 +42,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       try {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final cartProvider = Provider.of<CartProvider>(context, listen: false);
+        final couponProvider = Provider.of<CouponProvider>(context, listen: false);
         
         // ตรวจสอบว่าผู้ใช้ล็อกอินแล้วและมีสินค้าในตะกร้า
         if (authProvider.firebaseUser == null) {
@@ -50,7 +55,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         
         final userId = authProvider.firebaseUser!.uid;
         final cartItems = cartProvider.items;
-        final total = cartProvider.total;
+        final originalTotal = cartProvider.total;
+        final discountAmount = couponProvider.discountAmount;
+        final subtotalAfterDiscount = originalTotal - discountAmount;
+        final taxRate = 0.08; // 8% tax
+        final taxAmount = subtotalAfterDiscount * taxRate;
+        final finalTotal = subtotalAfterDiscount + taxAmount;
         
         // เตรียมข้อมูล shipping address
         final shippingAddress = {
@@ -59,10 +69,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           'address': _addressController.text.trim(),
         };
         
-        // ข้อมูล order
+        // ข้อมูล order รวมข้อมูลคูปอง
         final orderData = {
           'paymentMethod': _selectedPaymentMethod,
           'shippingAddress': shippingAddress,
+          'originalTotal': originalTotal,
+          'discountAmount': discountAmount,
+          'finalTotal': finalTotal,
+          'couponCode': couponProvider.appliedCoupon?.code,
+          'couponId': couponProvider.appliedCoupon?.id,
         };
         
         String? orderId;
@@ -120,7 +135,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           
           // สร้าง Payment Intent
           final paymentIntentData = await PaymentService.instance.createPaymentIntent(
-            amount: total,
+            amount: finalTotal,
             currency: 'usd',
             customerId: customerId,
           );
@@ -149,15 +164,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         }
         
+        // ยืนยันการใช้คูปอง (เพิ่มจำนวนการใช้งาน)
+        if (couponProvider.hasAppliedCoupon) {
+          await couponProvider.confirmCouponUsage();
+        }
+        
         // สร้าง order object สำหรับส่งไป order confirmation (ใช้ข้อมูลพื้นฐาน)
         user_model.Order? createdOrder;
         createdOrder = user_model.Order(
           id: orderId,
           userId: userId,
           items: cartItems,
-          subtotal: cartProvider.subtotal,
-          tax: cartProvider.tax,
-          total: cartProvider.total,
+          subtotal: originalTotal,
+          tax: taxAmount,
+          total: finalTotal,
           status: 'pending',
           paymentMethod: _selectedPaymentMethod == 'creditCard' ? 'Credit Card' : 'Other',
           createdAt: DateTime.now(),
@@ -167,13 +187,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'phone': _phoneController.text.trim(),
             'address': _addressController.text.trim(),
           },
+          couponCode: couponProvider.appliedCoupon?.code,
+          couponId: couponProvider.appliedCoupon?.id,
+          discountAmount: discountAmount,
         );
         
         if (mounted) {
           setState(() => _isLoading = false);
           
-          // Clear cart หลังจากสั่งซื้อสำเร็จ
+          // Clear cart และคูปองหลังจากสั่งซื้อสำเร็จ
           cartProvider.clearCart();
+          couponProvider.removeCoupon();
           
           // นำทางไปหน้า order confirmation พร้อมข้อมูล order
           Navigator.pushReplacementNamed(
@@ -181,7 +205,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             '/order-confirmation',
             arguments: {
               'order': createdOrder,
-              'totalAmount': cartProvider.total,
+              'totalAmount': finalTotal,
               'paymentMethod': _selectedPaymentMethod == 'creditCard' ? 'Credit Card' : 'Other',
             },
           );
@@ -494,6 +518,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ตรวจสอบว่า CouponProvider พร้อมใช้งาน
+    final couponProvider = Provider.of<CouponProvider?>(context, listen: false);
+    if (couponProvider == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Checkout'),
+          backgroundColor: AppTheme.darkGreen,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Checkout'),
@@ -696,6 +735,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
 
+            // Coupon Section
+            _buildCouponSection(),
+
             // Order Summary and Place Order Button
             Container(
               padding: const EdgeInsets.all(16),
@@ -710,28 +752,97 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
               child: SafeArea(
-                child: Consumer<CartProvider>(
-                  builder: (context, cartProvider, child) {
+                child: Consumer2<CartProvider, CouponProvider>(
+                  builder: (context, cartProvider, couponProvider, child) {
+                    final originalTotal = cartProvider.total;
+                    final discountAmount = couponProvider.discountAmount;
+                    final subtotalAfterDiscount = originalTotal - discountAmount;
+                    final taxRate = 0.08; // 8% tax
+                    final taxAmount = subtotalAfterDiscount * taxRate;
+                    final finalTotal = subtotalAfterDiscount + taxAmount;
+                    
                     return Column(
                       children: [
                         // Order Summary
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Column(
                           children: [
-                            const Text(
-                              'Total Amount',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            // Subtotal
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Subtotal',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  '\$${originalTotal.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '\$${cartProvider.total.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.darkGreen,
+                            
+                            // Discount (if applied)
+                            if (couponProvider.hasAppliedCoupon) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Discount (${couponProvider.appliedCoupon!.code})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.green.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '-\$${discountAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.green.shade600,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ],
+                            
+                            // Tax
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Tax (8%)',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  '\$${taxAmount.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 20),
+                            
+                            // Total
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total Amount',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${finalTotal.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.darkGreen,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -755,6 +866,225 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  /// 🎟️ Coupon Section
+  Widget _buildCouponSection() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Consumer<CouponProvider>(
+        builder: (context, couponProvider, child) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_offer,
+                      color: Colors.orange.shade600,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'ใส่รหัสคูปอง',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Applied Coupon Display
+                if (couponProvider.hasAppliedCoupon) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.green.shade600,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'คูปอง ${couponProvider.appliedCoupon!.code} ถูกใช้แล้ว',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
+                              Text(
+                                'ประหยัดได้ \$${couponProvider.discountAmount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            couponProvider.removeCoupon();
+                            _couponController.clear();
+                          },
+                          icon: Icon(
+                            Icons.close,
+                            color: Colors.green.shade600,
+                            size: 20,
+                          ),
+                          tooltip: 'ยกเลิกคูปอง',
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // Coupon Input
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _couponController,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: InputDecoration(
+                            hintText: 'ใส่รหัสคูปอง',
+                            prefixIcon: const Icon(Icons.local_offer_outlined),
+                            border: const OutlineInputBorder(),
+                            enabled: !couponProvider.isValidating,
+                          ),
+                          onChanged: (value) {
+                            // Convert to uppercase automatically
+                            _couponController.text = value.toUpperCase();
+                            _couponController.selection = TextSelection.fromPosition(
+                              TextPosition(offset: _couponController.text.length),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: couponProvider.isValidating ? null : _applyCoupon,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: couponProvider.isValidating
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'ใช้',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Validation Message
+                  if (couponProvider.validationMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: couponProvider.appliedCoupon != null
+                          ? Colors.green.shade50
+                          : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: couponProvider.appliedCoupon != null
+                            ? Colors.green.shade200
+                            : Colors.red.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            couponProvider.appliedCoupon != null
+                              ? Icons.check_circle_outline
+                              : Icons.error_outline,
+                            size: 16,
+                            color: couponProvider.appliedCoupon != null
+                              ? Colors.green.shade600
+                              : Colors.red.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              couponProvider.validationMessage!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: couponProvider.appliedCoupon != null
+                                  ? Colors.green.shade700
+                                  : Colors.red.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 🎟️ Apply Coupon
+  void _applyCoupon() async {
+    final couponCode = _couponController.text.trim();
+    if (couponCode.isEmpty) {
+      return;
+    }
+
+    final couponProvider = Provider.of<CouponProvider>(context, listen: false);
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    
+    final success = await couponProvider.applyCoupon(couponCode, cartProvider.total);
+    
+    if (success) {
+      // Clear input on success
+      _couponController.clear();
+      FocusScope.of(context).unfocus();
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -764,6 +1094,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _expiryController.dispose();
     _cvcController.dispose();
     _cardHolderController.dispose();
+    _couponController.dispose();
     super.dispose();
   }
 }
