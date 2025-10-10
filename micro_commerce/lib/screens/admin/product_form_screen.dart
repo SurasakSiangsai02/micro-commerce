@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../models/product.dart';
 import '../../utils/theme.dart';
 import '../../services/database_service.dart';
+import '../../constants/product_categories.dart';
 
 /// 📝 ProductFormScreen - หน้าฟอร์มเพิ่ม/แก้ไขสินค้า
 /// 
@@ -37,19 +38,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   List<String> _imageUrls = [];
   bool _isLoading = false;
   
-  // Predefined categories (แก้ไขได้)
-  List<String> _predefinedCategories = [
-    'เสื้อผ้า',
-    'รองเท้า',
-    'กระเป๋า',
-    'เครื่องประดับ',
-    'เครื่องสำอาง',
-    'เครื่องใช้ไฟฟ้า',
-    'หนังสือ',
-    'ของเล่น',
-    'กีฬา',
-    'อื่นๆ',
-  ];
+  // ใช้หมวดหมู่จาก constants (ภาษาอังกฤษ)
+  List<String> get _predefinedCategories => ProductCategories.categories;
   
   bool get _isEditing => widget.product != null;
   
@@ -68,15 +58,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _priceController.text = product.price.toString();
     _stockController.text = product.stock.toString();
     
-    // ตรวจสอบว่า category ของสินค้าอยู่ใน predefined categories หรือไม่
+    // ตรวจสอบหมวดหมู่ - ถ้าเป็นหมวดหมู่เก่าที่ไม่รองรับให้ reset เป็น Electronics
     if (_predefinedCategories.contains(product.category)) {
       _categoryController.text = product.category;
     } else {
-      // ถ้าไม่มี ให้เพิ่มเข้าไปใน list และใช้ค่านั้น
-      if (product.category.isNotEmpty && !_predefinedCategories.contains(product.category)) {
-        _predefinedCategories.add(product.category);
-      }
-      _categoryController.text = product.category;
+      // หมวดหมู่เก่าหรือไม่รองรับ ให้ default เป็น Electronics
+      _categoryController.text = 'Electronics';
     }
     
     _imageUrls = List.from(product.images);
@@ -142,11 +129,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               
               // Category
               DropdownButtonFormField<String>(
-                value: _categoryController.text.isEmpty || !_predefinedCategories.contains(_categoryController.text) 
-                    ? null 
-                    : _categoryController.text,
+                value: _predefinedCategories.contains(_categoryController.text) 
+                    ? _categoryController.text 
+                    : null, // ถ้าไม่มีในรายการให้เป็น null
                 decoration: const InputDecoration(
-                  labelText: 'หมวดหมู่ *',
+                  labelText: 'Category *',
                   prefixIcon: Icon(Icons.category),
                 ),
                 items: _predefinedCategories.map((category) {
@@ -162,7 +149,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 },
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'กรุณาเลือกหมวดหมู่';
+                    return 'Please select a category';
                   }
                   return null;
                 },
@@ -702,7 +689,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text),
-        'category': _categoryController.text.trim(),
+        'category': _categoryController.text.trim(), // ใช้ภาษาอังกฤษตรงๆ
         'stock': int.parse(_stockController.text),
         'images': _imageUrls,
         'rating': _isEditing ? widget.product!.rating : 0.0,

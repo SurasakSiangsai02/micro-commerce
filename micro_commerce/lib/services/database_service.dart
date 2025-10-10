@@ -124,9 +124,28 @@ class DatabaseService {
   /// 🗑️ ลบสินค้า
   static Future<void> deleteProduct(String productId) async {
     try {
-      await productsCollection.doc(productId).delete();
+      // ตรวจสอบว่าสินค้ามีอยู่จริงก่อนลบ
+      final docSnapshot = await productsCollection.doc(productId).get();
+      if (!docSnapshot.exists) {
+        throw Exception('ไม่พบสินค้าที่ต้องการลบ');
+      }
+      
+      // ลบสินค้า
+      await productsCollection.doc(productId).delete().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw Exception('การลบสินค้าใช้เวลานานเกินไป');
+        },
+      );
+      
     } catch (e) {
-      throw Exception('Failed to delete product: $e');
+      if (e.toString().contains('permission-denied')) {
+        throw Exception('ไม่มีสิทธิ์ในการลบสินค้า');
+      } else if (e.toString().contains('network')) {
+        throw Exception('ปัญหาการเชื่อมต่ออินเตอร์เน็ต');
+      } else {
+        throw Exception('เกิดข้อผิดพลาด: ${e.toString()}');
+      }
     }
   }
 

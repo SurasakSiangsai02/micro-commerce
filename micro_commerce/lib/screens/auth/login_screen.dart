@@ -6,7 +6,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
-import '../../config/security_config.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -157,21 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   
                   // Development Tools (แสดงเฉพาะใน Development Mode)
-                  if (SecurityConfig.isDevelopment) ...[
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/test');
-                      },
-                      child: const Text(
-                        '🔧 Test & Debug',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+
                 ],
               ),
             ),

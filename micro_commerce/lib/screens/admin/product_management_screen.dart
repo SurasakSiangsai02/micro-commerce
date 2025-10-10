@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/theme.dart';
 import '../../models/product.dart';
 import '../../services/database_service.dart';
+import '../../widgets/loading_dialog.dart';
 import 'product_form_screen.dart';
 
 /// 🛍️ ProductManagementScreen - หน้าจัดการสินค้าสำหรับ Admin
@@ -25,8 +26,8 @@ class ProductManagementScreen extends StatefulWidget {
 class _ProductManagementScreenState extends State<ProductManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedCategory = 'ทั้งหมด';
-  List<String> _categories = ['ทั้งหมด'];
+  String _selectedCategory = 'All';
+  List<String> _categories = ['All'];
 
   @override
   void initState() {
@@ -43,7 +44,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           .toList();
       
       setState(() {
-        _categories = ['ทั้งหมด', ...categories];
+        _categories = ['All', ...categories]; // ใช้ภาษาอังกฤษทั้งหมด
       });
     } catch (e) {
       // Handle error
@@ -104,7 +105,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                     Row(
                       children: [
                         const Text(
-                          'หมวดหมู่: ',
+                          'Category: ',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Expanded(
@@ -166,7 +167,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              _searchQuery.isNotEmpty || _selectedCategory != 'ทั้งหมด'
+                              _searchQuery.isNotEmpty || _selectedCategory != 'All'
                                   ? Icons.search_off
                                   : Icons.inventory_2_outlined,
                               size: 64,
@@ -174,16 +175,16 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              _searchQuery.isNotEmpty || _selectedCategory != 'ทั้งหมด'
-                                  ? 'ไม่พบสินค้าที่ตรงกับการค้นหา'
-                                  : 'ยังไม่มีสินค้าในระบบ',
+                              _searchQuery.isNotEmpty || _selectedCategory != 'All'
+                                  ? 'No products found matching the search criteria'
+                                  : 'No products in the system yet',
                               style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
                               ),
                             ),
                             const SizedBox(height: 16),
-                            if (_searchQuery.isEmpty && _selectedCategory == 'ทั้งหมด')
+                            if (_searchQuery.isEmpty && _selectedCategory == 'All')
                               ElevatedButton.icon(
                                 onPressed: _addNewProduct,
                                 icon: const Icon(Icons.add),
@@ -223,7 +224,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           product.name.toLowerCase().contains(_searchQuery) ||
           product.description.toLowerCase().contains(_searchQuery);
           
-      final matchesCategory = _selectedCategory == 'ทั้งหมด' ||
+      final matchesCategory = _selectedCategory == 'All' ||
           product.category == _selectedCategory;
           
       return matchesSearch && matchesCategory;
@@ -285,7 +286,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'หมวดหมู่: ${product.category}',
+                        'Category: ${product.category}',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -478,26 +479,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              
-              try {
-                // TODO: Implement delete product in DatabaseService
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('ลบสินค้า "${product.name}" สำเร็จ'),
-                    backgroundColor: AppTheme.successGreen,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('เกิดข้อผิดพลาด: $e'),
-                    backgroundColor: AppTheme.errorRed,
-                  ),
-                );
-              }
-            },
+            onPressed: () => _performDeleteProduct(product),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
@@ -506,6 +488,64 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _performDeleteProduct(Product product) async {
+    // ปิด confirmation dialog ก่อน
+    Navigator.pop(context);
+    
+    try {
+      // แสดง loading dialog พร้อม timeout
+      LoadingDialog.show(
+        context,
+        message: 'กำลังลบสินค้า "${product.name}"...',
+        timeout: const Duration(seconds: 15),
+      );
+      
+      // เพิ่ม timeout ป้องกันการค้างนาน
+      await DatabaseService.deleteProduct(product.id).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('การลบสินค้าใช้เวลานานเกินไป กรุณาลองใหม่');
+        },
+      );
+      
+      // ปิด loading dialog
+      LoadingDialog.hide();
+      
+      // แสดงข้อความสำเร็จ
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ลบสินค้า "${product.name}" สำเร็จ'),
+            backgroundColor: AppTheme.successGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        
+        // โหลดหมวดหมู่ใหม่
+        _loadCategories();
+      }
+    } catch (e) {
+      // ปิด loading dialog
+      LoadingDialog.hide();
+      
+      // แสดงข้อความผิดพลาด
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppTheme.errorRed,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'ลองใหม่',
+              textColor: Colors.white,
+              onPressed: () => _performDeleteProduct(product),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override

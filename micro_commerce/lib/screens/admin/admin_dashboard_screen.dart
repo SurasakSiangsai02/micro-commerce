@@ -383,26 +383,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 
                 const SizedBox(height: 12),
                 
-                // Debug Tools (Admin only)
-                if (user.isAdmin)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pushNamed(context, '/admin/debug'),
-                          icon: const Icon(Icons.bug_report),
-                          label: const Text('Debug Tools'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.lightPurple,
-                            foregroundColor: AppTheme.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SizedBox()), // Empty space
-                    ],
-                  ),
+
               ],
             ),
           ),

@@ -39,11 +39,8 @@ import 'screens/customer/checkout_screen.dart';
 import 'screens/customer/order_confirmation_screen.dart';
 import 'screens/customer/order_history_screen.dart';
 import 'screens/common/home_screen.dart';
-import 'screens/debug/test_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
-import 'screens/admin/admin_debug_screen.dart';
 import 'screens/admin/user_role_management_screen.dart';
-import 'screens/debug/coupon_debug_screen.dart';
 import 'models/product.dart';
 
 /// Entry point - เริ่มต้น Environment Variables, Firebase, Stripe และ App
@@ -155,10 +152,7 @@ class MyApp extends StatelessWidget {
         },
         '/order-history': (context) => const OrderHistoryScreen(),
         '/admin': (context) => const AdminDashboardScreen(),
-        '/admin/debug': (context) => const AdminDebugScreen(),
         '/admin/user-roles': (context) => const UserRoleManagementScreen(),
-        '/test': (context) => const TestScreen(),
-        '/debug/coupon': (context) => const CouponDebugScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product-detail') {
