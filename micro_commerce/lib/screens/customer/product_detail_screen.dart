@@ -139,6 +139,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               return Image.network(
                                 widget.product.images[index],
                                 fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: Colors.grey[100],
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3.0,
+                                        color: AppTheme.darkGreen,
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded / 
+                                              loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.image_not_supported_outlined,
+                                            size: 64,
+                                            color: Colors.grey,
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            'Image not available',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),

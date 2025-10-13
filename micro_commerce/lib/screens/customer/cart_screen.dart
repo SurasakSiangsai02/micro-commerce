@@ -69,6 +69,38 @@ class CartScreen extends StatelessWidget {
                                 width: 80,
                                 height: 80,
                                 fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey[200],
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.0,
+                                        color: AppTheme.darkGreen,
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded / 
+                                              loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.image_not_supported_outlined,
+                                        size: 32,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             const SizedBox(width: 12),

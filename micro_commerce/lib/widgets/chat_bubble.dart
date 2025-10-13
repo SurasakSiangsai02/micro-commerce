@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/chat_message.dart';
 import '../models/user.dart' as user_model;
+import '../utils/logger.dart';
 
 /// 💬 ChatBubble - แสดง message bubble ในแชท
 /// 
@@ -347,10 +348,7 @@ class _ChatBubbleState extends State<ChatBubble> {
       ),
       errorWidget: (context, url, error) {
         // Debug log the error
-        if (kDebugMode) {
-          print('❌ CachedNetworkImage error: $error');
-          print('❌ Failed URL: $url');
-        }
+        Logger.error('CachedNetworkImage failed to load', error: error);
         
         // Try fallback with Image.network
         return Image.network(
@@ -374,10 +372,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             );
           },
           errorBuilder: (context, error, stackTrace) {
-            if (kDebugMode) {
-              print('❌ Image.network also failed: $error');
-              print('❌ Stack: $stackTrace');
-            }
+            Logger.error('Image.network also failed to load', error: error);
             
             return Container(
               height: 200,

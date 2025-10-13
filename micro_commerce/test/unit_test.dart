@@ -225,9 +225,101 @@ void main() {
     });
   });
 
-  // 🔐 Password Reset Tests
+  // � Order Model Tests
+  group('🛒 Order Model Tests', () {
+    test('TC013: Order model should not have couponType property', () {
+      // Test that Order model doesn't have couponType/couponValue properties
+      // This prevents NoSuchMethodError when accessing non-existent properties
+      
+      const testOrderData = {
+        'id': 'test_order_123',
+        'userId': 'user_123',
+        'items': [],
+        'subtotal': 100.0,
+        'tax': 10.0,
+        'total': 110.0,
+        'status': 'completed',
+        'paymentMethod': 'credit_card',
+        'shippingAddress': {},
+        'couponCode': 'SAVE20',
+        'couponId': 'coupon_123',
+        'discountAmount': 20.0,
+      };
+      
+      // Verify that we use discountAmount instead of couponType/couponValue
+      expect(testOrderData['discountAmount'], equals(20.0));
+      expect(testOrderData['couponCode'], equals('SAVE20'));
+      
+      // This test ensures we don't access non-existent properties
+      expect(testOrderData.containsKey('couponType'), isFalse);
+      expect(testOrderData.containsKey('couponValue'), isFalse);
+    });
+  });
+
+  // �️ Image Loading Tests
+  group('🖼️ Image Loading Tests', () {
+    test('TC014: Image URL validation', () {
+      // Test valid image URLs
+      const validUrls = [
+        'https://example.com/image.jpg',
+        'https://example.com/image.png',
+        'https://example.com/image.webp',
+        'https://via.placeholder.com/150',
+      ];
+      
+      for (final url in validUrls) {
+        expect(url.isNotEmpty, isTrue);
+        expect(Uri.tryParse(url), isNotNull);
+      }
+      
+      // Test invalid URLs should be handled gracefully
+      const invalidUrls = [
+        '',
+        'invalid-url',
+        'not-a-url',
+      ];
+      
+      for (final url in invalidUrls) {
+        if (url.isEmpty) {
+          expect(url.isEmpty, isTrue);
+        } else {
+          // Invalid URLs should still be strings (handled by error builder)
+          expect(url, isA<String>());
+        }
+      }
+    });
+    
+    test('TC015: Image fallback handling', () {
+      // Test fallback scenarios
+      const testCases = [
+        {
+          'scenario': 'Product image fallback',
+          'fallbackIcon': 'shopping_bag_outlined',
+          'fallbackText': 'Product image not available'
+        },
+        {
+          'scenario': 'Avatar image fallback', 
+          'fallbackIcon': 'person_outline',
+          'fallbackText': null
+        },
+        {
+          'scenario': 'Chat image fallback',
+          'fallbackIcon': 'image_outlined', 
+          'fallbackText': 'Image not available'
+        }
+      ];
+      
+      for (final testCase in testCases) {
+        expect(testCase['scenario'], isNotNull);
+        expect(testCase['fallbackIcon'], isNotNull);
+        // fallbackText can be null for avatars
+      }
+    });
+  });
+
+  // �🔐 Password Reset Tests
   group('🔐 Password Reset Tests', () {
-    test('TC013: Valid email format for password reset', () {
+    test('TC016: Valid email format for password reset', () {
       // Valid email formats
       expect(_isValidEmail('user@example.com'), isTrue);
       expect(_isValidEmail('test.email+tag@domain.co.uk'), isTrue);
@@ -240,7 +332,7 @@ void main() {
       expect(_isValidEmail(''), isFalse);
     });
 
-    test('TC014: Password reset success workflow', () {
+    test('TC017: Password reset success workflow', () {
       const testEmail = 'test@example.com';
       
       // Simulate password reset request

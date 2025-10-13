@@ -234,7 +234,7 @@ class OrderCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(order.status).withOpacity(0.1),
+                      color: _getStatusColor(order.status).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: _getStatusColor(order.status),
@@ -528,7 +528,7 @@ class OrderDetailScreen extends StatelessWidget {
             ],
           ),
           Text(
-            '${order.couponType == 'percentage' ? '${order.couponValue}%' : '\$${order.couponValue?.toStringAsFixed(2)}'}',
+            '-\$${order.discountAmount.toStringAsFixed(2)}',
             style: const TextStyle(
               fontSize: 14,
               color: AppTheme.lightGreen,
