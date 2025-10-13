@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/product.dart';
 import '../../utils/theme.dart';
 import '../../services/database_service.dart';
+import '../../services/storage_service.dart';
+import '../../utils/logger.dart';
 import '../../constants/product_categories.dart';
 
 /// 📝 ProductFormScreen - หน้าฟอร์มเพิ่ม/แก้ไขสินค้า
@@ -37,6 +40,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   
   List<String> _imageUrls = [];
   bool _isLoading = false;
+  bool _isUploadingImage = false;
+  final ImagePicker _imagePicker = ImagePicker();
+  // ไม่จำเป็นต้องใช้ instance เนื่องจาก StorageService เป็น static method
   
   // ใช้หมวดหมู่จาก constants (ภาษาอังกฤษ)
   List<String> get _predefinedCategories => ProductCategories.categories;
@@ -307,40 +313,39 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        
-        // Quick image suggestions
-        Text(
-          '🖼️ รูปภาพตัวอย่าง (คลิกเพื่อเพิ่ม)',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
-          ),
-        ),
         const SizedBox(height: 8),
+        
+        // Main upload button
         SizedBox(
-          height: 80,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildSampleImage('https://images.pexels.com/photos/1464625/pexels-photo-1464625.jpeg?auto=compress&cs=tinysrgb&w=400', 'เสื้อ'),
-              _buildSampleImage('https://images.pexels.com/photos/267301/pexels-photo-267301.jpeg?auto=compress&cs=tinysrgb&w=400', 'รองเท้า'),
-              _buildSampleImage('https://images.pexels.com/photos/1055691/pexels-photo-1055691.jpeg?auto=compress&cs=tinysrgb&w=400', 'กระเป๋า'),
-              _buildSampleImage('https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=400', 'หูฟัง'),
-              _buildSampleImage('https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg?auto=compress&cs=tinysrgb&w=400', 'นาฬิกา'),
-            ],
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isUploadingImage ? null : _uploadImageFromDevice,
+            icon: _isUploadingImage 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo),
+            label: Text(_isUploadingImage ? 'กำลังอัปโหลด...' : 'เลือกรูปภาพจากอุปกรณ์'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
           ),
         ),
-        const SizedBox(height: 16),
         
-        // Add Image URL input
+        const SizedBox(height: 12),
+        
+        // Alternative: Add Image URL input
         Row(
           children: [
             Expanded(
               child: TextFormField(
                 controller: _imageUrlController,
                 decoration: const InputDecoration(
-                  labelText: 'URL รูปภาพ',
+                  labelText: 'หรือเพิ่มจาก URL',
                   hintText: 'https://example.com/image.jpg',
                   prefixIcon: Icon(Icons.link),
                 ),
@@ -562,6 +567,65 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       );
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// 🎯 อัปโหลดรูปภาพจากอุปกรณ์ไปยัง Firebase Storage
+  Future<void> _uploadImageFromDevice() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image == null) {
+        Logger.info('ผู้ใช้ยกเลิกการเลือกรูปภาพ');
+        return;
+      }
+
+      setState(() => _isUploadingImage = true);
+
+      Logger.info('เริ่มอัปโหลดรูปภาพสินค้า: ${image.name}');
+
+      // สร้าง productId ชั่วคราวสำหรับการอัปโหลด
+      final String tempProductId = _isEditing 
+          ? widget.product!.id 
+          : 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+      // อัปโหลดไปยัง Firebase Storage
+      final String? downloadUrl = await StorageService.uploadProductImage(
+        filePath: image.path,
+        productId: tempProductId,
+      );
+
+      if (downloadUrl != null) {
+        // เพิ่ม URL ลงในรายการรูปภาพ
+        setState(() {
+          _imageUrls.add(downloadUrl);
+        });
+
+        Logger.info('อัปโหลดรูปภาพสำเร็จ: $downloadUrl');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('อัปโหลดรูปภาพสำเร็จ!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        throw Exception('ไม่สามารถอัปโหลดรูปภาพได้');
+      }
+
+    } catch (e) {
+      Logger.error('อัปโหลดรูปภาพล้มเหลว', error: e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('อัปโหลดรูปภาพล้มเหลว: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isUploadingImage = false);
     }
   }
 
@@ -788,64 +852,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
   }
 
-  /// 🖼️ สร้าง Widget รูปภาพตัวอย่าง
-  Widget _buildSampleImage(String url, String label) {
-    return GestureDetector(
-      onTap: () {
-        if (!_imageUrls.contains(url)) {
-          setState(() {
-            _imageUrls.add(url);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('เพิ่มรูป$label แล้ว'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('รูปภาพนี้ถูกเพิ่มแล้ว'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      },
-      child: Container(
-        width: 80,
-        margin: const EdgeInsets.only(right: 8),
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                url,
-                width: 80,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 80,
-                    height: 60,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image, size: 30),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   @override
   void dispose() {

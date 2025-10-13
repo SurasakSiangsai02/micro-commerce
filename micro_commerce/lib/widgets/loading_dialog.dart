@@ -26,8 +26,8 @@ class LoadingDialog {
       barrierDismissible: false,
       builder: (dialogContext) {
         _dialogContext = dialogContext;
-        return WillPopScope(
-          onWillPop: () async => false, // ป้องกันการปิด dialog โดยการกด back
+        return PopScope(
+          canPop: false, // ป้องกันการปิด dialog โดยการกด back
           child: Dialog(
             backgroundColor: Colors.transparent,
             child: Center(

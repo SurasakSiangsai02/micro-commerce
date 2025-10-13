@@ -202,6 +202,7 @@ class ChatService {
     required String senderRole,
     required String content,
     String type = 'text',
+    String? imageUrl,
     String? fileName,
     int? fileSize,
     String? replyToMessageId,
@@ -218,6 +219,7 @@ class ChatService {
         'senderRole': senderRole,
         'type': type,
         'content': content,
+        'imageUrl': imageUrl,
         'fileName': fileName,
         'fileSize': fileSize,
         'timestamp': now,
@@ -228,6 +230,14 @@ class ChatService {
       };
 
       print('📝 ChatService: Message data prepared: ${messageData['content']}');
+      
+      // Debug สำหรับ image messages
+      if (type == 'image') {
+        print('🖼️ ChatService: Image message debug');
+        print('🖼️ ImageURL: ${messageData['imageUrl']}');
+        print('🖼️ Content: ${messageData['content']}');
+        print('🖼️ Type: ${messageData['type']}');
+      }
 
       // เพิ่มข้อความ
       final docRef = await messagesCollection(roomId).add(messageData);
@@ -272,7 +282,12 @@ class ChatService {
     required String imageUrl,
     String? caption,
   }) async {
-    final content = caption?.isNotEmpty == true ? '$imageUrl|$caption' : imageUrl;
+    final content = caption?.isNotEmpty == true ? caption! : '';
+    
+    print('🖼️ sendImageMessage Debug:');
+    print('🖼️ imageUrl: $imageUrl');  
+    print('🖼️ caption: $caption');
+    print('🖼️ content: $content');
     
     return await sendMessage(
       roomId: roomId,
@@ -282,6 +297,7 @@ class ChatService {
       senderRole: senderRole,
       content: content,
       type: 'image',
+      imageUrl: imageUrl,
     );
   }
 

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/storage_service.dart';
+import '../../services/firebase_tester.dart';
+import '../../utils/logger.dart';
 import '../../widgets/chat_room_list.dart';
 import '../../widgets/chat_bubble.dart';
 import '../../widgets/chat_input.dart';
@@ -41,6 +44,11 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
     if (authProvider.userProfile != null) {
       chatProvider.setCurrentUser(authProvider.userProfile);
     }
+    
+    // Run Firebase connection test for debugging
+    Future.delayed(const Duration(seconds: 2), () {
+      FirebaseConnectionTester.runAllTests();
+    });
   }
 
   @override
@@ -161,7 +169,15 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
 
   /// 💬 Chat room
   Widget _buildChatRoom(ChatProvider chatProvider) {
-    final room = chatProvider.currentRoom!;
+    final room = chatProvider.currentRoom;
+    
+    if (room == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('No room selected'),
+        ),
+      );
+    }
     
     return Scaffold(
       appBar: AppBar(
@@ -227,7 +243,7 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      chatProvider.error!,
+                      chatProvider.error ?? 'Unknown error',
                       style: TextStyle(color: Colors.red.shade700),
                     ),
                   ),
@@ -313,7 +329,7 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Replying to ${_replyToMessage!.senderName}',
+                  'Replying to ${_replyToMessage?.senderName ?? 'Unknown'}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -322,7 +338,7 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _replyToMessage!.content,
+                  _replyToMessage?.content ?? '',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade700,
@@ -381,24 +397,166 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
 
   /// 📷 Send image
   Future<void> _sendImage(String imagePath) async {
+    if (!mounted) return;
+    
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = authProvider.userProfile;
     
-    // TODO: Upload image to Firebase Storage
-    // For now, use placeholder URL
-    const imageUrl = 'https://via.placeholder.com/300x200';
+    if (currentUser == null) {
+      Logger.warning('Cannot send image: user not authenticated');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กรุณาเข้าสู่ระบบก่อนส่งรูปภาพ')),
+        );
+      }
+      return;
+    }
+
+    // Debug: Check authentication status
+    final firebaseUser = authProvider.firebaseUser;
+    Logger.info('Current user: ${currentUser.uid}, Firebase user: ${firebaseUser?.uid}');
     
-    await chatProvider.sendImageMessage(imageUrl, caption: 'Sent an image');
+    if (firebaseUser == null) {
+      Logger.error('Firebase user is null but userProfile exists');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('เกิดข้อผิดพลาดการยืนยันตัวตน กรุณาเข้าสู่ระบบใหม่')),
+        );
+      }
+      return;
+    }
+    
+    try {
+      // Check file size first
+      final isValidSize = await StorageService.isFileSizeValid(imagePath, maxSizeInMB: 5);
+      if (!isValidSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ขนาดไฟล์ใหญ่เกินไป (สูงสุด 5MB)')),
+          );
+        }
+        return;
+      }
+      
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กำลังอัพโหลดรูปภาพ...'), duration: Duration(seconds: 2)),
+        );
+      }
+      
+      // Upload image to Firebase Storage
+      Logger.info('Uploading image for user: ${currentUser.uid}');
+      final imageUrl = await StorageService.uploadChatImage(
+        filePath: imagePath,
+        userId: currentUser.uid,
+      );
+      
+      if (imageUrl != null) {
+        // Send image message with actual URL
+        await chatProvider.sendImageMessage(imageUrl, caption: 'ส่งรูปภาพ');
+        Logger.business('Image message sent successfully', {'userId': currentUser.uid});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ส่งรูปภาพสำเร็จ'), duration: Duration(seconds: 1)),
+          );
+        }
+      } else {
+        throw Exception('Failed to upload image');
+      }
+      
+    } catch (e, stackTrace) {
+      Logger.error('Failed to send image message', error: e, stackTrace: stackTrace);
+      
+      String errorMessage = 'ไม่สามารถส่งรูปภาพได้ กรุณาลองใหม่';
+      
+      // Provide specific error messages
+      if (e.toString().contains('unauthorized')) {
+        errorMessage = 'ไม่มีสิทธิ์อัพโหลดไฟล์ กรุณาตรวจสอบการเข้าสู่ระบบ';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'ปัญหาการเชื่อมต่อเครือข่าย กรุณาลองใหม่';
+      } else if (e.toString().contains('too-large')) {
+        errorMessage = 'ไฟล์มีขนาดใหญ่เกินไป';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), duration: const Duration(seconds: 4)),
+        );
+      }
+    }
   }
 
   /// 📁 Send file
   Future<void> _sendFile(String filePath, String fileName, int fileSize) async {
+    if (!mounted) return;
+    
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = authProvider.userProfile;
     
-    // TODO: Upload file to Firebase Storage
-    // For now, use placeholder URL
-    const fileUrl = 'https://example.com/file.pdf';
+    if (currentUser == null) {
+      Logger.warning('Cannot send file: user not authenticated');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กรุณาเข้าสู่ระบบก่อนส่งไฟล์')),
+        );
+      }
+      return;
+    }
     
-    await chatProvider.sendFileMessage(fileUrl, fileName, fileSize);
+    try {
+      // Check file size first
+      final isValidSize = await StorageService.isFileSizeValid(filePath, maxSizeInMB: 10);
+      if (!isValidSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ขนาดไฟล์ใหญ่เกินไป (สูงสุด 10MB)')),
+          );
+        }
+        return;
+      }
+      
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กำลังอัพโหลดไฟล์...'), duration: Duration(seconds: 2)),
+        );
+      }
+      
+      // Upload file to Firebase Storage
+      Logger.info('Uploading file for user: ${currentUser.uid}');
+      final fileUrl = await StorageService.uploadChatFile(
+        filePath: filePath,
+        userId: currentUser.uid,
+        customFileName: fileName,
+      );
+      
+      if (fileUrl != null) {
+        // Send file message with actual URL
+        await chatProvider.sendFileMessage(fileUrl, fileName, fileSize);
+        Logger.business('File message sent successfully', {'userId': currentUser.uid, 'fileName': fileName});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ส่งไฟล์สำเร็จ'), duration: Duration(seconds: 1)),
+          );
+        }
+      } else {
+        throw Exception('Failed to upload file');
+      }
+      
+    } catch (e, stackTrace) {
+      Logger.error('Failed to send file message', error: e, stackTrace: stackTrace);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถส่งไฟล์ได้ กรุณาลองใหม่')),
+        );
+      }
+    }
   }
 
   /// 💬 Set reply message

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/chat_message.dart';
@@ -158,12 +159,12 @@ class _ChatBubbleState extends State<ChatBubble> {
     return CircleAvatar(
       radius: 16,
       backgroundColor: widget.message.getRoleColor(),
-      backgroundImage: widget.message.senderAvatar != null && widget.message.senderAvatar!.isNotEmpty
-        ? CachedNetworkImageProvider(widget.message.senderAvatar!)
+      backgroundImage: (widget.message.senderAvatar?.isNotEmpty == true)
+        ? CachedNetworkImageProvider(widget.message.senderAvatar ?? '')
         : null,
-      child: widget.message.senderAvatar == null || widget.message.senderAvatar!.isEmpty
+      child: (widget.message.senderAvatar?.isEmpty != false)
         ? Text(
-            widget.message.senderName.isNotEmpty 
+            (widget.message.senderName.isNotEmpty) 
               ? widget.message.senderName[0].toUpperCase()
               : '?',
             style: const TextStyle(
@@ -253,32 +254,58 @@ class _ChatBubbleState extends State<ChatBubble> {
 
   /// 📷 Image content
   Widget _buildImageContent() {
+    final imageUrl = widget.message.imageUrl;
+    
+    // Debug: แสดงข้อมูล imageUrl
+    if (kDebugMode) {
+      print('🔍 ChatBubble Debug - Message ID: ${widget.message.id}');
+      print('🔍 ChatBubble Debug - Type: ${widget.message.type}');
+      print('🔍 ChatBubble Debug - Content: ${widget.message.content}');
+      print('🔍 ChatBubble Debug - ImageURL: $imageUrl');
+    }
+    
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return Container(
+        height: 200,
+        color: Colors.grey.shade200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+              const SizedBox(height: 8),
+              Text('No image URL', style: TextStyle(color: Colors.grey)),
+              if (kDebugMode) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Type: ${widget.message.type}\nContent: ${widget.message.content.length > 30 ? widget.message.content.substring(0, 30) + '...' : widget.message.content}',
+                  style: const TextStyle(fontSize: 10, color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Debug: Show image URL in debug mode
+        if (kDebugMode)
+          Padding(
+            padding: const EdgeInsets.all(4),
+            child: Text(
+              'IMG: ${imageUrl.length > 50 ? imageUrl.substring(0, 50) + '...' : imageUrl}',
+              style: const TextStyle(fontSize: 10, color: Colors.blue),
+            ),
+          ),
+        
         // Image
         ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-          child: CachedNetworkImage(
-            imageUrl: widget.message.imageUrl!,
-            height: 200,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              height: 200,
-              color: Colors.grey.shade200,
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 200,
-              color: Colors.grey.shade200,
-              child: const Center(
-                child: Icon(Icons.error, color: Colors.red),
-              ),
-            ),
-          ),
+          child: _buildImageWidget(imageUrl),
         ),
         
         // Caption
@@ -297,7 +324,91 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  /// 📁 File content
+  /// �️ Build image widget with fallbacks
+  Widget _buildImageWidget(String imageUrl) {
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      height: 200,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        height: 200,
+        color: Colors.grey.shade200,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 8),
+              Text('กำลังโหลดรูปภาพ...', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) {
+        // Debug log the error
+        if (kDebugMode) {
+          print('❌ CachedNetworkImage error: $error');
+          print('❌ Failed URL: $url');
+        }
+        
+        // Try fallback with Image.network
+        return Image.network(
+          imageUrl,
+          height: 200,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              height: 200,
+              color: Colors.grey.shade200,
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded / 
+                        (loadingProgress.expectedTotalBytes ?? 1)
+                      : null,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            if (kDebugMode) {
+              print('❌ Image.network also failed: $error');
+              print('❌ Stack: $stackTrace');
+            }
+            
+            return Container(
+              height: 200,
+              color: Colors.red.shade50,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.broken_image, color: Colors.red, size: 48),
+                    const SizedBox(height: 8),
+                    const Text('ไม่สามารถโหลดรูปภาพได้', 
+                        style: TextStyle(color: Colors.red)),
+                    if (kDebugMode) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'URL: ${imageUrl.length > 30 ? imageUrl.substring(0, 30) + '...' : imageUrl}',
+                        style: const TextStyle(fontSize: 10, color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// �📁 File content
   Widget _buildFileContent() {
     return Padding(
       padding: const EdgeInsets.all(12),

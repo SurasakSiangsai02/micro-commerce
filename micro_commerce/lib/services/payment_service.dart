@@ -3,6 +3,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/app_config.dart';
+import '../utils/logger.dart';
 
 /// 💳 PaymentService - จัดการ Stripe Payment Processing
 /// 
@@ -34,10 +35,10 @@ class PaymentService {
       // เปิดใช้งาน Apple Pay และ Google Pay (หากรองรับ)
       await Stripe.instance.applySettings();
       
-      print('✅ Stripe initialized successfully');
+      Logger.info('Stripe initialized successfully');
     } catch (e) {
-      print('⚠️ Warning: Stripe initialization failed: $e');
-      print('💡 App will continue without Stripe payment support');
+      Logger.warning('Stripe initialization failed', error: e);
+      Logger.info('App will continue without Stripe payment support');
       // ไม่ throw exception เพื่อให้แอปยังทำงานได้
       // Credit card payment จะไม่สามารถใช้งานได้ แต่ COD และ Bank Transfer ยังใช้ได้
     }
@@ -70,14 +71,14 @@ class PaymentService {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('✅ Payment Intent created: ${data['id']}');
+        Logger.business('Payment Intent created', {'paymentIntentId': data['id']});
         return data;
       } else {
         final error = jsonDecode(response.body);
         throw Exception('Failed to create payment intent: ${error['error']['message']}');
       }
     } catch (e) {
-      print('❌ Error creating payment intent: $e');
+      Logger.error('Error creating payment intent', error: e);
       rethrow;
     }
   }
@@ -106,14 +107,14 @@ class PaymentService {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('✅ Customer created: ${data['id']}');
+        Logger.business('Customer created', {'customerId': data['id']});
         return data['id'];
       } else {
         final error = jsonDecode(response.body);
         throw Exception('Failed to create customer: ${error['error']['message']}');
       }
     } catch (e) {
-      print('❌ Error creating customer: $e');
+      Logger.error('Error creating customer', error: e);
       rethrow;
     }
   }
@@ -194,7 +195,7 @@ class PaymentService {
         throw Exception('Failed to get payment intent: ${error['error']['message']}');
       }
     } catch (e) {
-      print('❌ Error getting payment intent: $e');
+      Logger.error('Error getting payment intent', error: e);
       rethrow;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'logger.dart';
 
 class TestDataSeeder {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -8,7 +9,7 @@ class TestDataSeeder {
       // Check if products already exist
       final productsSnapshot = await _firestore.collection('products').limit(1).get();
       if (productsSnapshot.docs.isNotEmpty) {
-        print('Test products already exist, skipping seed...');
+        Logger.info('Test products already exist, skipping seed...');
         return;
       }
 
@@ -301,9 +302,9 @@ class TestDataSeeder {
       }
       
       await batch.commit();
-      print('Successfully seeded ${testProducts.length} test products across multiple categories!');
+      Logger.info('Successfully seeded ${testProducts.length} test products across multiple categories!');
     } catch (e) {
-      print('Error seeding test products: $e');
+      Logger.error('Error seeding test products: $e');
     }
   }
 
@@ -317,12 +318,12 @@ class TestDataSeeder {
         productsBatch.delete(doc.reference);
       }
       await productsBatch.commit();
-      print('Cleared existing products');
+      Logger.info('Cleared existing products');
 
       // Now seed new products
       await seedProducts();
     } catch (e) {
-      print('Error reseeding products: $e');
+      Logger.error('Error reseeding products: $e');
     }
   }
 
@@ -352,9 +353,9 @@ class TestDataSeeder {
       }
       await ordersBatch.commit();
 
-      print('Successfully cleared all test data!');
+      Logger.info('Successfully cleared all test data!');
     } catch (e) {
-      print('Error clearing test data: $e');
+      Logger.error('Error clearing test data: $e');
     }
   }
 }

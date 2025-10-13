@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/storage_service.dart';
+import '../../utils/logger.dart';
 import '../../widgets/chat_room_list.dart';
 import '../../widgets/chat_bubble.dart';
 import '../../widgets/chat_input.dart';
@@ -645,22 +647,141 @@ class _AdminChatScreenState extends State<AdminChatScreen>
 
   /// 📷 Send image
   Future<void> _sendImage(String imagePath) async {
+    if (!mounted) return;
+    
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = authProvider.userProfile;
     
-    // TODO: Upload image to Firebase Storage
-    const imageUrl = 'https://via.placeholder.com/300x200';
+    if (currentUser == null) {
+      Logger.warning('Cannot send image: admin not authenticated');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กรุณาเข้าสู่ระบบก่อนส่งรูปภาพ')),
+        );
+      }
+      return;
+    }
     
-    await chatProvider.sendImageMessage(imageUrl, caption: 'Admin sent an image');
+    try {
+      // Check file size first
+      final isValidSize = await StorageService.isFileSizeValid(imagePath, maxSizeInMB: 5);
+      if (!isValidSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ขนาดไฟล์ใหญ่เกินไป (สูงสุด 5MB)')),
+          );
+        }
+        return;
+      }
+      
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กำลังอัพโหลดรูปภาพ...'), duration: Duration(seconds: 2)),
+        );
+      }
+      
+      // Upload image to Firebase Storage
+      Logger.info('Admin uploading image: ${currentUser.uid}');
+      final imageUrl = await StorageService.uploadChatImage(
+        filePath: imagePath,
+        userId: currentUser.uid,
+      );
+      
+      if (imageUrl != null) {
+        // Send image message with actual URL
+        await chatProvider.sendImageMessage(imageUrl, caption: 'ทีมงานส่งรูปภาพ');
+        Logger.business('Admin image message sent successfully', {'adminId': currentUser.uid});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ส่งรูปภาพสำเร็จ'), duration: Duration(seconds: 1)),
+          );
+        }
+      } else {
+        throw Exception('Failed to upload image');
+      }
+      
+    } catch (e, stackTrace) {
+      Logger.error('Admin failed to send image message', error: e, stackTrace: stackTrace);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถส่งรูปภาพได้ กรุณาลองใหม่')),
+        );
+      }
+    }
   }
 
   /// 📁 Send file
   Future<void> _sendFile(String filePath, String fileName, int fileSize) async {
+    if (!mounted) return;
+    
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = authProvider.userProfile;
     
-    // TODO: Upload file to Firebase Storage
-    const fileUrl = 'https://example.com/admin-file.pdf';
+    if (currentUser == null) {
+      Logger.warning('Cannot send file: admin not authenticated');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กรุณาเข้าสู่ระบบก่อนส่งไฟล์')),
+        );
+      }
+      return;
+    }
     
-    await chatProvider.sendFileMessage(fileUrl, fileName, fileSize);
+    try {
+      // Check file size first
+      final isValidSize = await StorageService.isFileSizeValid(filePath, maxSizeInMB: 10);
+      if (!isValidSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ขนาดไฟล์ใหญ่เกินไป (สูงสุด 10MB)')),
+          );
+        }
+        return;
+      }
+      
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กำลังอัพโหลดไฟล์...'), duration: Duration(seconds: 2)),
+        );
+      }
+      
+      // Upload file to Firebase Storage
+      Logger.info('Admin uploading file: ${currentUser.uid}');
+      final fileUrl = await StorageService.uploadChatFile(
+        filePath: filePath,
+        userId: currentUser.uid,
+        customFileName: fileName,
+      );
+      
+      if (fileUrl != null) {
+        // Send file message with actual URL
+        await chatProvider.sendFileMessage(fileUrl, fileName, fileSize);
+        Logger.business('Admin file message sent successfully', {'adminId': currentUser.uid, 'fileName': fileName});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ส่งไฟล์สำเร็จ'), duration: Duration(seconds: 1)),
+          );
+        }
+      } else {
+        throw Exception('Failed to upload file');
+      }
+      
+    } catch (e, stackTrace) {
+      Logger.error('Admin failed to send file message', error: e, stackTrace: stackTrace);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถส่งไฟล์ได้ กรุณาลองใหม่')),
+        );
+      }
+    }
   }
 
   /// 💬 Set reply message

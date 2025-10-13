@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules สำหรับ micro-commerce app
+service firebase.storage {
+  match /b/{bucket}/o {
+    // กฎสำหรับ chat images และ files
+    match /chat/{allPaths=**} {
+      // อนุญาตให้ authenticated users อ่านและเขียน
+      allow read: if request.auth != null;
+      allow write: if request.auth != null 
+        && request.resource.size < 10 * 1024 * 1024; // ไฟล์ไม่เกิน 10MB
+    }
+    
+    // กฎสำหรับ product images (admin เท่านั้น)
+    match /products/{allPaths=**} {
+      allow read: if true; // ทุกคนอ่านได้
+      allow write: if request.auth != null 
+        && request.auth.token.role in ['admin', 'moderator']
+        && request.resource.size < 5 * 1024 * 1024; // ไฟล์ไม่เกิน 5MB
+    }
+    
+    // กฎสำหรับ user avatars
+    match /avatars/{userId} {
+      allow read: if true; // ทุกคนอ่านได้
+      allow write: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.size < 2 * 1024 * 1024; // ไฟล์ไม่เกิน 2MB
+    }
+    
+    // ปฏิเสธทุกอย่างที่ไม่ตรงกับกฎข้างบน
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

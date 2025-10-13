@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../utils/logger.dart';
 
 /// 🔐 Secure App Configuration
 /// 
@@ -163,9 +164,9 @@ class AppConfig {
       await dotenv.load(fileName: '.env');
       
       if (isDebug) {
-        print('🔧 AppConfig loaded successfully');
-        print('🌍 Environment: $appEnv');
-        print('💳 Stripe Test Mode: $isStripeTestMode');
+        Logger.info('AppConfig loaded successfully');
+        Logger.info('Environment: $appEnv');
+        Logger.info('Stripe Test Mode: $isStripeTestMode');
       }
       
       // Validate required keys
@@ -173,8 +174,8 @@ class AppConfig {
       
     } catch (e) {
       if (isDebug) {
-        print('❌ Error loading .env file: $e');
-        print('📝 Make sure .env file exists and contains required keys');
+        Logger.error('Error loading .env file', error: e);
+        Logger.info('Make sure .env file exists and contains required keys');
       }
       rethrow;
     }
@@ -196,8 +197,11 @@ class AppConfig {
     }
     
     if (missingKeys.isNotEmpty) {
+      Logger.error(
+        'Missing required environment variables: ${missingKeys.join(', ')}'
+      );
       throw Exception(
-        '❌ Missing required environment variables: ${missingKeys.join(', ')}'
+        'Missing required environment variables: ${missingKeys.join(', ')}'
       );
     }
   }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'logger.dart';
 
 /// 🧪 AdminTestDataSeeder - สร้างข้อมูลทดสอบสำหรับระบบ Admin
 /// 
@@ -26,13 +27,13 @@ class AdminTestDataSeeder {
           email: email,
           password: password,
         );
-        print('🔐 Admin auth account created');
+        Logger.info('🔐 Admin auth account created');
       } catch (authError) {
         // ถ้าบัญชีมีแล้ว ให้ login แล้วอัปเดตข้อมูล
         if (authError.toString().contains('email-already-in-use')) {
-          print('📧 Admin email already exists, updating user data only');
+          Logger.info('📧 Admin email already exists, updating user data only');
         } else {
-          print('⚠️ Auth error: $authError');
+          Logger.warning('⚠️ Auth error: $authError');
         }
       }
 
@@ -53,11 +54,11 @@ class AdminTestDataSeeder {
           .doc(userId)
           .set(adminData, SetOptions(merge: true));
 
-      print('✅ Admin user created successfully');
-      print('📧 Email: $email');
-      print('🔑 Password: $password');
+      Logger.info('✅ Admin user created successfully');
+      Logger.info('📧 Email: $email');
+      Logger.info('🔑 Password: $password');
     } catch (e) {
-      print('❌ Error creating admin user: $e');
+      Logger.error('❌ Error creating admin user: $e');
     }
   }
 
@@ -75,13 +76,13 @@ class AdminTestDataSeeder {
           email: email,
           password: password,
         );
-        print('🔐 Moderator auth account created');
+        Logger.info('🔐 Moderator auth account created');
       } catch (authError) {
         // ถ้าบัญชีมีแล้ว ให้ login แล้วอัปเดตข้อมูล
         if (authError.toString().contains('email-already-in-use')) {
-          print('📧 Moderator email already exists, updating user data only');
+          Logger.info('📧 Moderator email already exists, updating user data only');
         } else {
-          print('⚠️ Auth error: $authError');
+          Logger.warning('⚠️ Auth error: $authError');
         }
       }
 
@@ -102,11 +103,11 @@ class AdminTestDataSeeder {
           .doc(userId)
           .set(moderatorData, SetOptions(merge: true));
 
-      print('✅ Moderator user created successfully');
-      print('📧 Email: $email');
-      print('🔑 Password: $password');
+      Logger.info('✅ Moderator user created successfully');
+      Logger.info('📧 Email: $email');
+      Logger.info('🔑 Password: $password');
     } catch (e) {
-      print('❌ Error creating moderator user: $e');
+      Logger.error('❌ Error creating moderator user: $e');
     }
   }
 
@@ -231,7 +232,7 @@ class AdminTestDataSeeder {
       }
 
       await batch.commit();
-      print('✅ T-shirt with variants created successfully');
+      Logger.info('✅ T-shirt with variants created successfully');
 
       // รองเท้าที่มีหลายขนาดและสี
       final shoeData = {
@@ -291,9 +292,9 @@ class AdminTestDataSeeder {
           .doc('shoes-with-variants')
           .set(shoeData);
 
-      print('✅ Shoes with variants created successfully');
+      Logger.info('✅ Shoes with variants created successfully');
     } catch (e) {
-      print('❌ Error creating products with variants: $e');
+      Logger.error('❌ Error creating products with variants: $e');
     }
   }
 
@@ -385,28 +386,28 @@ class AdminTestDataSeeder {
       }
 
       await batch.commit();
-      print('✅ Sample orders created successfully');
+      Logger.info('✅ Sample orders created successfully');
     } catch (e) {
-      print('❌ Error creating sample orders: $e');
+      Logger.error('❌ Error creating sample orders: $e');
     }
   }
 
   /// 🚀 รันการสร้างข้อมูลทดสอบทั้งหมด
   static Future<void> seedAllTestData() async {
-    print('🌱 Starting admin test data seeding...');
+    Logger.info('🌱 Starting admin test data seeding...');
     
     await createAdminUser();
     await createModeratorUser();
     await createProductsWithVariants();
     await createSampleOrders();
     
-    print('🎉 Admin test data seeding completed!');
+    Logger.info('🎉 Admin test data seeding completed!');
   }
 
   /// 🧹 ลบข้อมูลทดสอบทั้งหมด
   static Future<void> clearTestData() async {
     try {
-      print('🧹 Clearing test data...');
+      Logger.info('🧹 Clearing test data...');
       
       // ลบ test users
       await _firestore.collection('users').doc('admin-test-user-id').delete();
@@ -421,9 +422,9 @@ class AdminTestDataSeeder {
         await _firestore.collection('orders').doc('sample-order-$i').delete();
       }
       
-      print('✅ Test data cleared successfully');
+      Logger.info('✅ Test data cleared successfully');
     } catch (e) {
-      print('❌ Error clearing test data: $e');
+      Logger.error('❌ Error clearing test data: $e');
     }
   }
 }

@@ -136,6 +136,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Micro Commerce',
       theme: AppTheme.lightTheme,
+      debugShowCheckedModeBanner: false, // 🎯 ลบ Debug Banner
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),

@@ -55,26 +55,55 @@ class ChatMessage {
 
   /// 📥 สร้าง ChatMessage จาก Firestore document
   factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
-    return ChatMessage(
-      id: doc.id,
-      roomId: data['roomId'] ?? '',
-      senderId: data['senderId'] ?? '',
-      senderName: data['senderName'] ?? 'Unknown',
-      senderAvatar: data['senderAvatar'],
-      senderRole: data['senderRole'] ?? 'customer',
-      type: data['type'] ?? 'text',
-      content: data['content'] ?? '',
-      imageUrl: data['imageUrl'],
-      fileName: data['fileName'],
-      fileSize: data['fileSize'],
-      timestamp: data['timestamp']?.toDate() ?? DateTime.now(),
-      readBy: List<String>.from(data['readBy'] ?? []),
-      isEdited: data['isEdited'] ?? false,
-      editedAt: data['editedAt']?.toDate(),
-      replyToMessageId: data['replyToMessageId'],
-    );
+    try {
+      final data = doc.data() as Map<String, dynamic>?;
+      
+      if (data == null) {
+        throw Exception('Document data is null for message: ${doc.id}');
+      }
+
+      // Debug: ตรวจสอบ imageUrl
+      if (data['type'] == 'image') {
+        print('🔍 Debug: Parsing image message ${doc.id}');
+        print('🔍 imageUrl in data: ${data['imageUrl']}');
+        print('🔍 content: ${data['content']}');
+      }
+      
+      return ChatMessage(
+        id: doc.id,
+        roomId: data['roomId']?.toString() ?? '',
+        senderId: data['senderId']?.toString() ?? '',
+        senderName: data['senderName']?.toString() ?? 'Unknown',
+        senderAvatar: data['senderAvatar']?.toString(),
+        senderRole: data['senderRole']?.toString() ?? 'customer',
+        type: data['type']?.toString() ?? 'text',
+        content: data['content']?.toString() ?? '',
+        imageUrl: data['imageUrl']?.toString(),
+        fileName: data['fileName']?.toString(),
+        fileSize: (data['fileSize'] is num) ? data['fileSize'] as int? : null,
+        timestamp: data['timestamp']?.toDate() ?? DateTime.now(),
+        readBy: data['readBy'] is List ? List<String>.from(data['readBy']) : [],
+        isEdited: data['isEdited'] == true,
+        editedAt: data['editedAt']?.toDate(),
+        replyToMessageId: data['replyToMessageId']?.toString(),
+      );
+    } catch (e, stackTrace) {
+      print('❌ Error parsing ChatMessage from Firestore: $e');
+      print('❌ Document ID: ${doc.id}');
+      print('❌ Stack trace: $stackTrace');
+      
+      // Return a safe default message
+      return ChatMessage(
+        id: doc.id,
+        roomId: 'error',
+        senderId: 'system',
+        senderName: 'System',
+        senderRole: 'system',
+        type: 'text',
+        content: 'Error loading message',
+        timestamp: DateTime.now(),
+      );
+    }
   }
 
   /// 📤 แปลง ChatMessage เป็น Map สำหรับ Firestore

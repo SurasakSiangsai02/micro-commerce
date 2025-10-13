@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import '../models/user.dart' as user_model;
+import '../utils/logger.dart';
 
 /// 🔥 DatabaseService - หัวใจของระบบ E-commerce
 /// 
@@ -290,7 +291,7 @@ class DatabaseService {
           return orders;
         })
         .handleError((error) {
-          print('Error loading orders: $error');
+          Logger.error('Error loading orders', error: error);
           return <user_model.Order>[];
         });
   }
@@ -385,10 +386,10 @@ class DatabaseService {
       // ล้างตะกร้าหลังจากสั่งซื้อสำเร็จ
       await clearCart(userId);
 
-      print('✅ Order created successfully: ${orderRef.id}');
+      Logger.business('Order created successfully', {'orderId': orderRef.id});
       return orderRef.id;
     } catch (e) {
-      print('❌ Error creating order: $e');
+      Logger.error('Error creating order', error: e);
       throw Exception('Failed to create order: $e');
     }
   }
@@ -402,7 +403,7 @@ class DatabaseService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('⚠️ Warning: Failed to update stock for product $productId: $e');
+      Logger.warning('Failed to update stock for product $productId', error: e);
       // ไม่ throw error เพราะไม่อยากให้ order ล้มเหลวเพราะ stock update
     }
   }
@@ -426,10 +427,10 @@ class DatabaseService {
           .map((doc) => user_model.Order.fromFirestore(doc))
           .toList();
 
-      print('✅ Fetched ${orders.length} orders for user: $userId');
+      Logger.info('Fetched ${orders.length} orders for user: $userId');
       return orders;
     } catch (e) {
-      print('❌ Error fetching user orders: $e');
+      Logger.error('Error fetching user orders', error: e);
       throw Exception('Failed to fetch orders: $e');
     }
   }
@@ -443,7 +444,7 @@ class DatabaseService {
       }
       return null;
     } catch (e) {
-      print('❌ Error fetching order: $e');
+      Logger.error('Error fetching order', error: e);
       throw Exception('Failed to fetch order: $e');
     }
   }
@@ -455,9 +456,9 @@ class DatabaseService {
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      print('✅ Order $orderId status updated to: $status');
+      Logger.business('Order status updated', {'orderId': orderId, 'newStatus': status.toString()});
     } catch (e) {
-      print('❌ Error updating order status: $e');
+      Logger.error('Error updating order status', error: e);
       throw Exception('Failed to update order status: $e');
     }
   }

@@ -3,6 +3,7 @@ import '../models/chat_room.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import '../models/user.dart' as user_model;
+import '../utils/logger.dart';
 
 /// 💬 ChatProvider - จัดการ State ของระบบแชท
 /// 
@@ -36,12 +37,16 @@ class ChatProvider with ChangeNotifier {
   /// 👤 ตั้งค่า current user
   void setCurrentUser(user_model.User? user) {
     _currentUser = user;
-    if (user != null) {
-      _loadUserChatRooms();
-    } else {
-      _clearAllData();
-    }
     notifyListeners();
+    
+    // Use Future.microtask to avoid setState during build
+    Future.microtask(() {
+      if (user != null) {
+        _loadUserChatRooms();
+      } else {
+        _clearAllData();
+      }
+    });
   }
 
   /// 📋 โหลดรายการห้องแชทของ user
@@ -54,7 +59,7 @@ class ChatProvider with ChangeNotifier {
     final isAdminOrModerator = _currentUser!.role.toString().contains('admin') || 
                                _currentUser!.role.toString().contains('moderator');
     
-    print('🔍 ChatProvider: Loading rooms for ${_currentUser!.role} (isAdmin: $isAdminOrModerator)');
+    Logger.info('ChatProvider: Loading rooms for ${_currentUser!.role} (isAdmin: $isAdminOrModerator)');
     
     final stream = isAdminOrModerator 
         ? ChatService.getAllChatRooms()  // Admin ดูห้องทั้งหมด
@@ -62,13 +67,13 @@ class ChatProvider with ChangeNotifier {
     
     stream.listen(
       (rooms) {
-        print('🚀 ChatProvider: Loaded ${rooms.length} chat rooms for ${_currentUser!.role}');
+        Logger.debug('ChatProvider: Loaded ${rooms.length} chat rooms for ${_currentUser!.role}');
         _chatRooms = rooms;
         _setLoading(false);
         notifyListeners();
       },
       onError: (error) {
-        print('❌ ChatProvider Error: $error');
+        Logger.error('ChatProvider Error', error: error);
         _setError('Failed to load chat rooms: $error');
         _setLoading(false);
       },
@@ -87,7 +92,7 @@ class ChatProvider with ChangeNotifier {
       );
       
       _currentRoom = room;
-      print('🏠 ChatProvider: Opening room ${room.id} for ${_currentUser?.role}');
+      Logger.info('ChatProvider: Opening room ${room.id} for ${_currentUser?.role}');
       
       // โหลดข้อความในห้อง
       _loadRoomMessages(roomId);
@@ -102,7 +107,7 @@ class ChatProvider with ChangeNotifier {
           try {
             await ChatService.markAllMessagesAsRead(roomId, _currentUser!.uid);
           } catch (e) {
-            print('⚠️ Could not mark messages as read: $e');
+            Logger.warning('Could not mark messages as read', error: e);
             // ไม่ต้อง throw error เพราะไม่ได้เป็น participant
           }
         }
@@ -111,7 +116,7 @@ class ChatProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      print('❌ ChatProvider: Failed to open room: $e');
+      Logger.error('ChatProvider: Failed to open room', error: e);
       _setError('Failed to open chat room: $e');
       _setLoading(false);
       return false;
@@ -122,12 +127,12 @@ class ChatProvider with ChangeNotifier {
   void _loadRoomMessages(String roomId) {
     ChatService.getRoomMessages(roomId).listen(
       (messages) {
-        print('📨 ChatProvider: Loaded ${messages.length} messages for room $roomId');
+        Logger.debug('ChatProvider: Loaded ${messages.length} messages for room $roomId');
         _currentMessages = messages; // เก็บเรียงลำดับจาก Firestore (ใหม่ไปเก่า)
         notifyListeners();
       },
       onError: (error) {
-        print('❌ ChatProvider: Failed to load messages: $error');
+        Logger.error('ChatProvider: Failed to load messages', error: error);
         _setError('Failed to load messages: $error');
       },
     );
@@ -171,12 +176,12 @@ class ChatProvider with ChangeNotifier {
   /// 📤 ส่งข้อความ
   Future<bool> sendMessage(String content, {String? replyToMessageId}) async {
     if (_currentRoom == null || _currentUser == null || content.trim().isEmpty) {
-      print('❌ Cannot send message: room=${_currentRoom?.id}, user=${_currentUser?.uid}, content="$content"');
+      Logger.warning('Cannot send message: room=${_currentRoom?.id}, user=${_currentUser?.uid}, content="$content"');
       return false;
     }
 
     try {
-      print('📤 Sending message: "${content.trim()}" to room ${_currentRoom!.id}');
+      Logger.debug('Sending message: "${content.trim()}" to room ${_currentRoom!.id}');
       
       final messageId = await ChatService.sendMessage(
         roomId: _currentRoom!.id,
@@ -188,14 +193,14 @@ class ChatProvider with ChangeNotifier {
         replyToMessageId: replyToMessageId,
       );
       
-      print('✅ Message sent successfully with ID: $messageId');
+      Logger.info('Message sent successfully with ID: $messageId');
       
       // หยุด typing indicator
       _stopTyping();
       
       return true;
     } catch (e) {
-      print('❌ Failed to send message: $e');
+      Logger.error('Failed to send message', error: e);
       _setError('Failed to send message: $e');
       return false;
     }
@@ -207,6 +212,9 @@ class ChatProvider with ChangeNotifier {
       return false;
     }
 
+    // Debug: Log the image URL being sent
+    Logger.info('ChatProvider: Sending image message with URL: $imageUrl');
+    
     try {
       await ChatService.sendImageMessage(
         roomId: _currentRoom!.id,
@@ -218,8 +226,10 @@ class ChatProvider with ChangeNotifier {
         caption: caption,
       );
       
+      Logger.info('ChatProvider: Image message sent successfully');
       return true;
     } catch (e) {
+      Logger.error('ChatProvider: Failed to send image', error: e);
       _setError('Failed to send image: $e');
       return false;
     }
@@ -285,7 +295,7 @@ class ChatProvider with ChangeNotifier {
     try {
       await ChatService.markMessageAsRead(_currentRoom!.id, messageId, _currentUser!.uid);
     } catch (e) {
-      print('Failed to mark message as read: $e');
+      Logger.warning('Failed to mark message as read', error: e);
     }
   }
 
