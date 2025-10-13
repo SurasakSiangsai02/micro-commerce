@@ -6,6 +6,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import 'forgot_password_screen.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -141,6 +142,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  
+                  // Forgot Password Link
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'ลืมรหัสผ่าน?',
+                      style: TextStyle(
+                        color: AppTheme.darkGreen,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 8),
                   
                   // Register Link
                   TextButton(

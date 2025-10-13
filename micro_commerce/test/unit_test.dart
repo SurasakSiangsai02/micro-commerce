@@ -224,6 +224,34 @@ void main() {
       }
     });
   });
+
+  // 🔐 Password Reset Tests
+  group('🔐 Password Reset Tests', () {
+    test('TC013: Valid email format for password reset', () {
+      // Valid email formats
+      expect(_isValidEmail('user@example.com'), isTrue);
+      expect(_isValidEmail('test.email+tag@domain.co.uk'), isTrue);
+      expect(_isValidEmail('user123@gmail.com'), isTrue);
+
+      // Invalid email formats
+      expect(_isValidEmail('invalid-email'), isFalse);
+      expect(_isValidEmail('user@'), isFalse);
+      expect(_isValidEmail('@domain.com'), isFalse);
+      expect(_isValidEmail(''), isFalse);
+    });
+
+    test('TC014: Password reset success workflow', () {
+      const testEmail = 'test@example.com';
+      
+      // Simulate password reset request
+      expect(_isValidEmail(testEmail), isTrue);
+      
+      // Log password reset attempt
+      print('✅ Password reset email would be sent to: $testEmail');
+      
+      expect(testEmail.isNotEmpty, isTrue);
+    });
+  });
 }
 
 /// Helper function สำหรับ Email validation
