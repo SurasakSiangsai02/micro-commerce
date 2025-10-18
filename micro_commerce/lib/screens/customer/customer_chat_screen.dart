@@ -620,27 +620,51 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
 
   /// 🗑️ Delete message
   Future<void> _deleteMessage(ChatMessage message) async {
-    final confirmed = await showDialog<bool>(
+    if (!mounted) return;
+    
+    // แสดง confirmation dialog
+    final shouldDelete = await ConfirmationDialogs.showDeleteChatMessageDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Message'),
-        content: const Text('Are you sure you want to delete this message?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      messageType: message.messageType.toString().split('.').last,
     );
-
-    if (confirmed == true) {
-      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-      await chatProvider.deleteMessage(message.id);
+    
+    if (shouldDelete != true || !mounted) return;
+    
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    
+    try {
+      // แสดง loading state
+      final success = await chatProvider.deleteMessage(message.id);
+      
+      if (success && mounted) {
+        // แสดงข้อความสำเร็จ
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ลบข้อความเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else if (mounted && !success) {
+        // แสดงข้อผิดพลาด
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่สามารถลบข้อความได้ กรุณาลองใหม่'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

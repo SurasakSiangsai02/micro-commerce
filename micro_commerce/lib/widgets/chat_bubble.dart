@@ -531,8 +531,8 @@ class _ChatBubbleState extends State<ChatBubble> {
           // Delete (เฉพาะข้อความของตัวเอง)
           if (isOwnMessage && widget.onDelete != null)
             _buildActionButton(
-              icon: Icons.delete,
-              label: 'Delete',
+              icon: _getDeleteIcon(widget.message.messageType),
+              label: _getDeleteLabel(widget.message.messageType),
               onTap: widget.onDelete!,
               color: Colors.red,
             ),
@@ -611,6 +611,32 @@ class _ChatBubbleState extends State<ChatBubble> {
         bottomLeft: Radius.circular(4),
         bottomRight: Radius.circular(16),
       );
+    }
+  }
+  
+  /// ใช้ icon ที่เหมาะสมสำหรับการลบแต่ละประเภทข้อความ
+  IconData _getDeleteIcon(MessageType messageType) {
+    switch (messageType) {
+      case MessageType.image:
+        return Icons.image_outlined;
+      case MessageType.file:
+        return Icons.attach_file_outlined;
+      case MessageType.text:
+      case MessageType.system:
+        return Icons.delete_outline;
+    }
+  }
+  
+  /// ใช้ label ที่เหมาะสมสำหรับการลบแต่ละประเภทข้อความ
+  String _getDeleteLabel(MessageType messageType) {
+    switch (messageType) {
+      case MessageType.image:
+        return 'Delete Image';
+      case MessageType.file:
+        return 'Delete File';
+      case MessageType.text:
+      case MessageType.system:
+        return 'Delete';
     }
   }
 }

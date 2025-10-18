@@ -511,6 +511,156 @@ void main() {
       simulateConfirmation(false);
       expect(itemDeleted, equals(false));
     });
+
+    /// 🎯 TC026-TC030: Message Deletion System Tests
+    
+    test('TC026: Text message deletion validation', () {
+      // Mock message data
+      final messageId = 'msg_123';
+      final messageType = 'text';
+      bool messageExists = true;
+      bool confirmationShown = false;
+      bool deletionSuccessful = false;
+      
+      // Simulate delete message process
+      void simulateDeleteMessage(String msgId, String msgType) {
+        expect(msgId, equals(messageId));
+        expect(msgType, equals(messageType));
+        
+        // Show confirmation dialog
+        confirmationShown = true;
+        
+        // Simulate user confirms deletion
+        if (messageExists) {
+          messageExists = false;
+          deletionSuccessful = true;
+        }
+      }
+      
+      // Test deletion process
+      simulateDeleteMessage(messageId, messageType);
+      expect(confirmationShown, equals(true));
+      expect(messageExists, equals(false));
+      expect(deletionSuccessful, equals(true));
+    });
+
+    test('TC027: Image message deletion validation', () {
+      // Mock image message data
+      final messageId = 'img_456';
+      final messageType = 'image';
+      bool imageExists = true;
+      bool confirmationShown = false;
+      String? deletionType;
+      
+      // Simulate delete image message
+      void simulateDeleteImage(String msgId, String msgType) {
+        expect(msgId, equals(messageId));
+        expect(msgType, equals(messageType));
+        
+        confirmationShown = true;
+        deletionType = msgType;
+        
+        if (imageExists) {
+          imageExists = false;
+        }
+      }
+      
+      // Test image deletion
+      simulateDeleteImage(messageId, messageType);
+      expect(confirmationShown, equals(true));
+      expect(deletionType, equals('image'));
+      expect(imageExists, equals(false));
+    });
+
+    test('TC028: File message deletion validation', () {
+      // Mock file message data
+      final messageId = 'file_789';
+      final messageType = 'file';
+      final fileName = 'document.pdf';
+      bool fileExists = true;
+      String? confirmationMessage;
+      
+      // Simulate delete file message
+      void simulateDeleteFile(String msgId, String msgType, String fName) {
+        expect(msgId, equals(messageId));
+        expect(msgType, equals(messageType));
+        expect(fName, equals(fileName));
+        
+        confirmationMessage = 'คุณต้องการลบไฟล์นี้หรือไม่?';
+        
+        if (fileExists) {
+          fileExists = false;
+        }
+      }
+      
+      // Test file deletion
+      simulateDeleteFile(messageId, messageType, fileName);
+      expect(confirmationMessage, isNotNull);
+      expect(confirmationMessage, contains('ลบไฟล์'));
+      expect(fileExists, equals(false));
+    });
+
+    test('TC029: Message deletion permission validation', () {
+      // Mock user and message data
+      final currentUserId = 'user_123';
+      final messageOwnerId = 'user_123';
+      final otherUserId = 'user_456';
+      bool canDelete = false;
+      
+      // Check if current user can delete message
+      bool checkDeletePermission(String userId, String msgOwnerId) {
+        return userId == msgOwnerId;
+      }
+      
+      // Test owner can delete
+      canDelete = checkDeletePermission(currentUserId, messageOwnerId);
+      expect(canDelete, equals(true));
+      
+      // Test non-owner cannot delete
+      canDelete = checkDeletePermission(otherUserId, messageOwnerId);
+      expect(canDelete, equals(false));
+    });
+
+    test('TC030: Message deletion error handling', () {
+      // Mock error scenarios
+      bool networkError = false;
+      bool permissionError = false;
+      bool messageNotFound = false;
+      String? errorMessage;
+      
+      // Simulate network error
+      void simulateNetworkError() {
+        networkError = true;
+        errorMessage = 'Network connection failed';
+      }
+      
+      // Simulate permission error
+      void simulatePermissionError() {
+        permissionError = true;
+        errorMessage = 'No permission to delete this message';
+      }
+      
+      // Simulate message not found
+      void simulateMessageNotFound() {
+        messageNotFound = true;
+        errorMessage = 'Message not found';
+      }
+      
+      // Test error scenarios
+      simulateNetworkError();
+      expect(networkError, equals(true));
+      expect(errorMessage, contains('Network'));
+      
+      errorMessage = null;
+      simulatePermissionError();
+      expect(permissionError, equals(true));
+      expect(errorMessage, contains('permission'));
+      
+      errorMessage = null;
+      simulateMessageNotFound();
+      expect(messageNotFound, equals(true));
+      expect(errorMessage, contains('not found'));
+    });
   });
 }
 

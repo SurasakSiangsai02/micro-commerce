@@ -316,14 +316,38 @@ class ConfirmationDialogs {
   /// แสดง dialog สำหรับลบข้อความในแชท
   static Future<bool?> showDeleteChatMessageDialog({
     required BuildContext context,
+    String messageType = 'text',
   }) {
+    String title = 'ลบข้อความ';
+    String message = 'คุณต้องการลบข้อความนี้หรือไม่?\n\nข้อความจะถูกลบออกจากการสนทนา';
+    IconData icon = Icons.delete_outline;
+    
+    switch (messageType.toLowerCase()) {
+      case 'image':
+        title = 'ลบรูปภาพ';
+        message = 'คุณต้องการลบรูปภาพนี้หรือไม่?\n\nรูปภาพจะถูกลบออกจากการสนทนา';
+        icon = Icons.image_outlined;
+        break;
+      case 'file':
+        title = 'ลบไฟล์';
+        message = 'คุณต้องการลบไฟล์นี้หรือไม่?\n\nไฟล์จะถูกลบออกจากการสนทนา';
+        icon = Icons.attach_file_outlined;
+        break;
+      case 'text':
+      default:
+        title = 'ลบข้อความ';
+        message = 'คุณต้องการลบข้อความนี้หรือไม่?\n\nข้อความจะถูกลบออกจากการสนทนา';
+        icon = Icons.delete_outline;
+        break;
+    }
+    
     return showConfirmDialog(
       context: context,
-      title: 'ลบข้อความ',
-      message: 'คุณต้องการลบข้อความนี้หรือไม่?\n\nข้อความจะถูกลบออกจากการสนทนา',
-      confirmText: 'ลบข้อความ',
+      title: title,
+      message: message,
+      confirmText: 'ลบ',
       cancelText: 'ยกเลิก',
-      icon: Icons.delete_outline,
+      icon: icon,
       isDanger: true,
     );
   }
