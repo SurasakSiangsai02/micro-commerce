@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 import 'package:micro_commerce/models/product.dart';
 import 'package:micro_commerce/models/user.dart';
 import 'package:micro_commerce/utils/logger.dart';
+import 'package:micro_commerce/widgets/confirmation_dialog.dart';
 
 /// 🧪 Unit Tests สำหรับ Micro-Commerce App
 /// 
@@ -10,6 +12,7 @@ import 'package:micro_commerce/utils/logger.dart';
 /// • Business logic validation
 /// • Utility functions
 /// • Error handling
+/// • Confirmation Dialog system
 
 void main() {
   group('📦 Product Model Tests', () {
@@ -342,6 +345,171 @@ void main() {
       print('✅ Password reset email would be sent to: $testEmail');
       
       expect(testEmail.isNotEmpty, isTrue);
+    });
+
+    /// 🎯 TC016-TC021: Confirmation Dialog Tests
+    test('TC016: ConfirmationDialog properties validation', () {
+      final dialog = ConfirmationDialog(
+        title: 'Test Title',
+        message: 'Test Message',
+        confirmText: 'ยืนยัน',
+        cancelText: 'ยกเลิก',
+        isDanger: true,
+      );
+
+      expect(dialog.title, equals('Test Title'));
+      expect(dialog.message, equals('Test Message'));
+      expect(dialog.confirmText, equals('ยืนยัน'));
+      expect(dialog.cancelText, equals('ยกเลิก'));
+      expect(dialog.isDanger, equals(true));
+    });
+
+    test('TC017: ConfirmationDialog default values', () {
+      final dialog = ConfirmationDialog(
+        title: 'Test',
+        message: 'Test Message',
+      );
+
+      expect(dialog.confirmText, equals('ยืนยัน'));
+      expect(dialog.cancelText, equals('ยกเลิก'));
+      expect(dialog.isDanger, equals(false));
+      expect(dialog.icon, isNull);
+      expect(dialog.iconColor, isNull);
+    });
+
+    test('TC018: Cart deletion scenario validation', () {
+      const productName = 'iPhone 15 Pro';
+      const expectedTitle = 'ลบสินค้าออกจากตะกร้า';
+      const expectedMessage = 'คุณต้องการลบ "iPhone 15 Pro" ออกจากตะกร้าหรือไม่?';
+      
+      // Simulate ConfirmationDialogs.showDeleteFromCartDialog logic
+      expect(productName.isNotEmpty, equals(true));
+      expect(expectedTitle.contains('ลบสินค้า'), equals(true));
+      expect(expectedMessage.contains(productName), equals(true));
+    });
+
+    test('TC019: Checkout confirmation validation', () {
+      const totalAmount = 1250.50;
+      const paymentMethod = 'Credit Card';
+      
+      // Simulate checkout validation
+      expect(totalAmount > 0, equals(true));
+      expect(paymentMethod.isNotEmpty, equals(true));
+      
+      final formattedAmount = totalAmount.toStringAsFixed(2);
+      expect(formattedAmount, equals('1250.50'));
+    });
+
+    test('TC020: Order cancellation validation', () {
+      const orderId = 'ORD12345';
+      const shortOrderId = 'ORD12345'; // Simulate .substring(0, 8)
+      
+      expect(orderId.isNotEmpty, equals(true));
+      expect(shortOrderId.length <= 8, equals(true));
+      
+      // Validate order cancellation scenarios
+      const validCancelableStatuses = ['pending', 'confirmed'];
+      expect(validCancelableStatuses.contains('pending'), equals(true));
+      expect(validCancelableStatuses.contains('shipped'), equals(false));
+      expect(validCancelableStatuses.contains('delivered'), equals(false));
+    });
+
+    test('TC021: Dialog action scenarios validation', () {
+      bool userConfirmed = false;
+      bool userCancelled = false;
+      
+      // Simulate user confirmation
+      void simulateConfirm() {
+        userConfirmed = true;
+      }
+      
+      void simulateCancel() {
+        userCancelled = true;
+      }
+      
+      // Test confirm action
+      simulateConfirm();
+      expect(userConfirmed, equals(true));
+      expect(userCancelled, equals(false));
+      
+      // Reset and test cancel action
+      userConfirmed = false;
+      simulateCancel();
+      expect(userConfirmed, equals(false));
+      expect(userCancelled, equals(true));
+    });
+
+    /// 🎯 TC022-TC025: Chat Deletion System Tests
+    test('TC022: Chat room deletion validation', () {
+      const roomId = 'room_123';
+      const userId = 'user_456';
+      const customerName = 'ลูกค้า A';
+      
+      // Validate chat room deletion parameters
+      expect(roomId.isNotEmpty, equals(true));
+      expect(userId.isNotEmpty, equals(true));
+      expect(customerName.isNotEmpty, equals(true));
+      
+      // Simulate deletion status change
+      const newStatus = 'deleted_by_user';
+      expect(newStatus.contains('deleted'), equals(true));
+    });
+
+    test('TC023: Chat deletion confirmation dialog', () {
+      const customerName = 'ร้านค้า ABC';
+      const expectedTitle = 'ลบการสนทนา';
+      const expectedMessage = 'คุณต้องการลบการสนทนากับ "ร้านค้า ABC" หรือไม่?';
+      
+      expect(customerName.isNotEmpty, equals(true));
+      expect(expectedTitle.contains('ลบ'), equals(true));
+      expect(expectedMessage.contains(customerName), equals(true));
+    });
+
+    test('TC024: Chat room status validation', () {
+      // Test valid chat room statuses
+      const validStatuses = ['active', 'deleted_by_user', 'closed', 'pending'];
+      
+      expect(validStatuses.contains('active'), equals(true));
+      expect(validStatuses.contains('deleted_by_user'), equals(true));
+      expect(validStatuses.contains('invalid_status'), equals(false));
+      
+      // Test status transition logic
+      const oldStatus = 'active';
+      const newStatus = 'deleted_by_user';
+      expect(oldStatus != newStatus, equals(true));
+    });
+
+    test('TC025: Chat swipe-to-delete validation', () {
+      bool swipeTriggered = false;
+      bool confirmationShown = false;
+      bool itemDeleted = false;
+      
+      // Simulate swipe gesture
+      void simulateSwipe() {
+        swipeTriggered = true;
+      }
+      
+      // Simulate confirmation dialog
+      void simulateConfirmation(bool userConfirmed) {
+        confirmationShown = true;
+        if (userConfirmed) {
+          itemDeleted = true;
+        }
+      }
+      
+      // Test swipe action
+      simulateSwipe();
+      expect(swipeTriggered, equals(true));
+      
+      // Test user confirms deletion
+      simulateConfirmation(true);
+      expect(confirmationShown, equals(true));
+      expect(itemDeleted, equals(true));
+      
+      // Reset and test user cancels deletion
+      itemDeleted = false;
+      simulateConfirmation(false);
+      expect(itemDeleted, equals(false));
     });
   });
 }

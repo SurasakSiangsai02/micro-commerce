@@ -374,6 +374,37 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// 🗑️ ลบห้องแชท (สำหรับ User)
+  Future<void> deleteChatRoom(String roomId) async {
+    try {
+      if (_currentUser == null) {
+        throw Exception('User not logged in');
+      }
+
+      _setLoading(true);
+
+      // เรียกใช้ ChatService เพื่อลบห้องแชท
+      await ChatService.deleteChatRoomByUser(roomId, _currentUser!.uid);
+
+      // ถ้าห้องที่ถูกลบเป็นห้องปัจจุบัน ให้ออกจากห้อง
+      if (_currentRoom?.id == roomId) {
+        leaveChatRoom();
+      }
+
+      // Refresh รายการห้องแชท
+      _loadUserChatRooms();
+
+      Logger.info('Chat room deleted successfully: $roomId');
+    } catch (e) {
+      final errorMessage = 'Failed to delete chat room: $e';
+      Logger.error(errorMessage);
+      _setError(errorMessage);
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   @override
   void dispose() {
     _clearAllData();

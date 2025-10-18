@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/confirmation_dialog.dart';
 import '../../providers/cart_provider.dart';
 
 class CartScreen extends StatelessWidget {
@@ -13,6 +14,28 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Shopping Cart'),
         backgroundColor: AppTheme.darkGreen,
+        actions: [
+          // Clear Cart Button
+          Consumer<CartProvider>(
+            builder: (context, cartProvider, child) {
+              if (cartProvider.items.isEmpty) return const SizedBox.shrink();
+              
+              return IconButton(
+                onPressed: () async {
+                  final shouldClear = await ConfirmationDialogs.showClearCartDialog(
+                    context: context,
+                  );
+                  
+                  if (shouldClear == true) {
+                    cartProvider.clearCart();
+                  }
+                },
+                icon: const Icon(Icons.delete_sweep_outlined),
+                tooltip: 'ล้างตะกร้าทั้งหมด',
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, child) {
@@ -172,8 +195,15 @@ class CartScreen extends StatelessWidget {
 
                             // Remove Button
                             IconButton(
-                              onPressed: () {
-                                cartProvider.removeFromCart(item.productId);
+                              onPressed: () async {
+                                final shouldDelete = await ConfirmationDialogs.showDeleteFromCartDialog(
+                                  context: context,
+                                  productName: item.productName,
+                                );
+                                
+                                if (shouldDelete == true) {
+                                  cartProvider.removeFromCart(item.productId);
+                                }
                               },
                               icon: const Icon(
                                 Icons.delete_outline,
@@ -246,8 +276,16 @@ class CartScreen extends StatelessWidget {
                       // Checkout Button
                       CustomButton(
                         text: 'Proceed to Checkout',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/checkout');
+                        onPressed: () async {
+                          final shouldCheckout = await ConfirmationDialogs.showCheckoutConfirmDialog(
+                            context: context,
+                            totalAmount: cartProvider.total,
+                            paymentMethod: 'Credit Card', // หรือดึงจาก user preference
+                          );
+                          
+                          if (shouldCheckout == true) {
+                            Navigator.pushNamed(context, '/checkout');
+                          }
                         },
                       ),
                     ],

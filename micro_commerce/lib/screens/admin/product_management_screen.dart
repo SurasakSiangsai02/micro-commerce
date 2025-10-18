@@ -5,6 +5,7 @@ import '../../utils/theme.dart';
 import '../../models/product.dart';
 import '../../services/database_service.dart';
 import '../../widgets/loading_dialog.dart';
+import '../../widgets/confirmation_dialog.dart';
 import 'product_form_screen.dart';
 
 /// 🛍️ ProductManagementScreen - หน้าจัดการสินค้าสำหรับ Admin
@@ -467,27 +468,15 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     });
   }
 
-  void _deleteProduct(Product product) {
-    showDialog(
+  void _deleteProduct(Product product) async {
+    final shouldDelete = await ConfirmationDialogs.showDeleteProductDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('คุณต้องการลบสินค้า "${product.name}" ใช่หรือไม่?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => _performDeleteProduct(product),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('ลบ'),
-          ),
-        ],
-      ),
+      productName: product.name,
     );
+    
+    if (shouldDelete == true) {
+      _performDeleteProduct(product);
+    }
   }
 
   Future<void> _performDeleteProduct(Product product) async {

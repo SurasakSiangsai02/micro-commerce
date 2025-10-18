@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../widgets/confirmation_dialog.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/coupon_provider.dart';
@@ -34,6 +35,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   
   String _selectedPaymentMethod = 'creditCard';
   bool _isLoading = false;
+
+  // 🎯 Handle Checkout with Confirmation Dialog
+  void _handleCheckoutWithConfirmation() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final paymentMethodText = _selectedPaymentMethod == 'creditCard' ? 'Credit Card' : 'Cash on Delivery';
+    
+    final shouldProceed = await ConfirmationDialogs.showCheckoutConfirmDialog(
+      context: context,
+      totalAmount: cartProvider.total,
+      paymentMethod: paymentMethodText,
+    );
+    
+    if (shouldProceed == true) {
+      _handleCheckout();
+    }
+  }
 
   void _handleCheckout() async {
     if (_formKey.currentState?.validate() ?? false) {
@@ -851,7 +872,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         // Place Order Button
                         CustomButton(
                           text: 'Place Order',
-                          onPressed: _handleCheckout,
+                          onPressed: () => _handleCheckoutWithConfirmation(),
                           isLoading: _isLoading,
                         ),
                       ],

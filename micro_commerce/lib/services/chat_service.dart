@@ -525,4 +525,69 @@ class ChatService {
       throw Exception('Failed to search chat rooms: $e');
     }
   }
+
+  /// 🗑️ ลบห้องแชท (สำหรับ User)
+  /// 
+  /// หมายเหตุ: การลบจะเปลี่ยนสถานะเป็น 'deleted_by_user' แทนการลบจริง
+  /// เพื่อให้ Admin ยังสามารถดูประวัติได้
+  static Future<void> deleteChatRoomByUser(String roomId, String userId) async {
+    try {
+      // ตรวจสอบว่า user เป็นผู้เข้าร่วมห้องแชทหรือไม่
+      final roomDoc = await chatRoomsCollection.doc(roomId).get();
+      
+      if (!roomDoc.exists) {
+        throw Exception('Chat room not found');
+      }
+
+      final roomData = roomDoc.data() as Map<String, dynamic>;
+      final participants = List<String>.from(roomData['participants'] ?? []);
+      
+      if (!participants.contains(userId)) {
+        throw Exception('User is not a participant in this chat room');
+      }
+
+      // อัพเดทสถานะของห้องแชท
+      await chatRoomsCollection.doc(roomId).update({
+        'status': 'deleted_by_user',
+        'deletedBy': userId,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'lastActivity': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Chat room $roomId deleted by user $userId');
+    } catch (e) {
+      print('❌ Error deleting chat room: $e');
+      throw Exception('Failed to delete chat room: $e');
+    }
+  }
+
+  /// 🔄 กู้คืนห้องแชท (สำหรับ Admin)
+  static Future<void> restoreChatRoom(String roomId) async {
+    try {
+      await chatRoomsCollection.doc(roomId).update({
+        'status': 'active',
+        'deletedBy': FieldValue.delete(),
+        'deletedAt': FieldValue.delete(),
+        'lastActivity': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Chat room $roomId restored');
+    } catch (e) {
+      print('❌ Error restoring chat room: $e');
+      throw Exception('Failed to restore chat room: $e');
+    }
+  }
+
+  /// 📊 ดึงห้องแชทที่ถูกลบ (สำหรับ Admin)
+  static Stream<List<ChatRoom>> getDeletedChatRooms() {
+    return chatRoomsCollection
+        .where('status', isEqualTo: 'deleted_by_user')
+        .orderBy('deletedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => ChatRoom.fromFirestore(doc))
+              .toList();
+        });
+  }
 }

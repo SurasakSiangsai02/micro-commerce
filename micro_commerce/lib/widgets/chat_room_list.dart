@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/chat_room.dart';
 import '../models/user.dart' as user_model;
+import '../widgets/confirmation_dialog.dart';
 
 enum RoomStatus { active, waiting, closed }
 
@@ -18,6 +19,7 @@ class ChatRoomList extends StatelessWidget {
   final List<ChatRoom> rooms;
   final user_model.User? currentUser;
   final Function(ChatRoom)? onRoomTap;
+  final Function(ChatRoom)? onDeleteRoom;
   final VoidCallback? onRefresh;
   final VoidCallback? onCreateRoom;
   final bool isLoading;
@@ -28,6 +30,7 @@ class ChatRoomList extends StatelessWidget {
     required this.rooms,
     this.currentUser,
     this.onRoomTap,
+    this.onDeleteRoom,
     this.onRefresh,
     this.onCreateRoom,
     this.isLoading = false,
@@ -77,14 +80,44 @@ class ChatRoomList extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => onRoomTap?.call(room),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+      child: Dismissible(
+        key: Key(room.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.delete_outline, color: Colors.white, size: 24),
+              SizedBox(height: 4),
+              Text(
+                'ลบ',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          return await _handleDeleteRoom(context, room);
+        },
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => onRoomTap?.call(room),
+            onLongPress: () => _showRoomOptions(context, room),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
               children: [
                 // Avatar
                 _buildAvatar(otherParticipant),
@@ -255,7 +288,8 @@ class ChatRoomList extends StatelessWidget {
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -505,6 +539,73 @@ class ChatRoomList extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 🗑️ Handle delete room confirmation
+  Future<bool> _handleDeleteRoom(BuildContext context, ChatRoom room) async {
+    final otherParticipant = _getOtherParticipant(room);
+    final displayName = otherParticipant?['name'] ?? 'ร้านค้า';
+    
+    final shouldDelete = await ConfirmationDialogs.showDeleteChatRoomDialog(
+      context: context,
+      customerName: displayName,
+    );
+    
+    if (shouldDelete == true) {
+      onDeleteRoom?.call(room);
+      return true;
+    }
+    
+    return false;
+  }
+
+  /// 📋 Show room options
+  void _showRoomOptions(BuildContext context, ChatRoom room) {
+    final otherParticipant = _getOtherParticipant(room);
+    final displayName = otherParticipant?['name'] ?? 'ร้านค้า';
+    
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text(
+                    'การสนทนากับ $displayName',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline, color: Colors.red),
+                    title: const Text(
+                      'ลบการสนทนา',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    subtitle: const Text('การสนทนาจะหายไปจากรายการของคุณ'),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await _handleDeleteRoom(context, room);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.close),
+                    title: const Text('ยกเลิก'),
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

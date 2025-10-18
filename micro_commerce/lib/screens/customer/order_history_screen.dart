@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/user.dart' as user_model;
 import '../../widgets/custom_button.dart';
+import '../../widgets/confirmation_dialog.dart';
 
 /// 📦 Order History Screen - แสดงประวัติคำสั่งซื้อ
 /// 
@@ -501,10 +502,69 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            const SizedBox(height: 16),
+
+            // Cancel Order Button (if order can be cancelled)
+            if (_canCancelOrder(order.status))
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 16),
+                child: OutlinedButton.icon(
+                  onPressed: () => _handleCancelOrder(context, order),
+                  icon: const Icon(Icons.cancel_outlined, color: Colors.orange),
+                  label: const Text(
+                    'ยกเลิกคำสั่งซื้อ',
+                    style: TextStyle(color: Colors.orange),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.orange),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  /// ตรวจสอบว่าสามารถยกเลิก order ได้หรือไม่
+  bool _canCancelOrder(String status) {
+    return status == 'pending' || status == 'confirmed';
+  }
+
+  /// Handle cancel order
+  void _handleCancelOrder(BuildContext context, user_model.Order order) async {
+    final shouldCancel = await ConfirmationDialogs.showCancelOrderDialog(
+      context: context,
+      orderId: order.id.substring(0, 8),
+    );
+    
+    if (shouldCancel == true) {
+      try {
+        // อัพเดท order status เป็น cancelled
+        await DatabaseService.updateOrderStatus(order.id, 'cancelled');
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('คำสั่งซื้อถูกยกเลิกแล้ว'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          Navigator.pop(context); // กลับไปหน้า order history
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาด: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildCouponRow(dynamic order) {

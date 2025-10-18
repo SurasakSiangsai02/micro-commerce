@@ -9,7 +9,9 @@ import '../../widgets/chat_room_list.dart';
 import '../../widgets/chat_bubble.dart';
 import '../../widgets/chat_input.dart';
 import '../../widgets/product_chat_header.dart';
+import '../../widgets/confirmation_dialog.dart';
 import '../../models/chat_message.dart';
+import '../../models/chat_room.dart';
 
 /// 💬 CustomerChatScreen - หน้าแชทสำหรับลูกค้า
 /// 
@@ -148,6 +150,9 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
         onRoomTap: (room) {
           chatProvider.openChatRoom(room.id);
         },
+        onDeleteRoom: (room) async {
+          await _handleDeleteChatRoomFromList(room);
+        },
         onRefresh: () {
           chatProvider.refresh();
         },
@@ -213,6 +218,28 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
               _showRoomInfo(room);
             },
             icon: const Icon(Icons.info_outline),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'delete':
+                  _handleDeleteChatRoom(room);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Text('ลบการสนทนา', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+            icon: const Icon(Icons.more_vert),
           ),
         ],
       ),
@@ -741,5 +768,122 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
         ],
       ),
     );
+  }
+
+  /// 🗑️ Handle delete chat room
+  Future<void> _handleDeleteChatRoom(ChatRoom room) async {
+    if (!mounted) return;
+    
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    
+    // แสดง confirmation dialog
+    final shouldDelete = await ConfirmationDialogs.showDeleteChatRoomDialog(
+      context: context,
+      customerName: room.customerName,
+    );
+    
+    if (shouldDelete != true || !mounted) return;
+    
+    try {
+      // แสดง loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      // ลบห้องแชท
+      await chatProvider.deleteChatRoom(room.id);
+      
+      // ปิด loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // แสดงข้อความสำเร็จ
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ลบการสนทนาเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // กลับไปหน้ารายการแชทโดยใช้ chatProvider
+        chatProvider.leaveChatRoom();
+      }
+    } catch (e) {
+      // ปิด loading dialog ถ้ายังเปิดอยู่
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // แสดงข้อผิดพลาด
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 🗑️ Handle delete chat room from list
+  Future<void> _handleDeleteChatRoomFromList(ChatRoom room) async {
+    if (!mounted) return;
+    
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    
+    // แสดง confirmation dialog
+    final shouldDelete = await ConfirmationDialogs.showDeleteChatRoomDialog(
+      context: context,
+      customerName: room.customerName,
+    );
+    
+    if (shouldDelete != true || !mounted) return;
+    
+    try {
+      // แสดง loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      // ลบห้องแชท
+      await chatProvider.deleteChatRoom(room.id);
+      
+      // ปิด loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // แสดงข้อความสำเร็จ
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ลบการสนทนาเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // ปิด loading dialog ถ้ายังเปิดอยู่
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // แสดงข้อผิดพลาด
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
