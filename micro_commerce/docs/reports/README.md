@@ -16,6 +16,13 @@
 - 📝 **เนื้อหา:** สรุปความสำเร็จ, metrics, บทเรียน
 - 🎉 **สถานะ:** Production Ready
 
+### 📊 DEMO_ANALYTICS.md
+**แดชบอร์ดติดตามผล Demo และ Testing**
+- 🎯 **สำหรับ:** Marketing Team, Project Manager
+- 📝 **เนื้อหา:** สถิติดาวน์โหลด, feedback, metrics
+- 📈 **ติดตาม:** Downloads, user feedback, ratings, bug reports
+- 🔗 **ควรอ่านคู่กับ:** ../guides/SHARING_TEMPLATES.md
+
 ## 📈 Overview Dashboard
 
 ### 🎯 Project Status

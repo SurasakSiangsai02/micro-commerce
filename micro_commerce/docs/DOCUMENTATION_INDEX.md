@@ -1,128 +1,212 @@
-==============================================================================================================================================================
-
-                        📁 MICRO-COMMERCE DOCUMENTATION INDEX                        📁 MICRO-COMMERCE DOCUMENTATION INDEX
-
-                           จัดหมวดหมู่ไฟล์ .md ทั้งหมดใน docs/                              จัดหมวดหมู่ไฟล์ .md ทั้งหมด
-
-==============================================================================================================================================================
+# 📚 Micro Commerce - Documentation Index# 📚 Micro Commerce - Documentation Index
 
 
 
-📚 คู่มือการใช้งาน (guides/)📚 คู่มือการใช้งาน (User Guides)
-
-================================================================================================================================================================
+## 📁 โครงสร้างเอกสาร## 📁 โครงสร้างเอกสาร
 
 
 
-🏗️ guides/ARCHITECTURE.md  🏠 README.md
+``````
 
-   📄 โครงสร้างระบบและสถาปัตยกรรม   📄 คู่มือการติดตั้งและเริ่มต้นโปรเจค
+docs/docs/
 
-   🎯 สำหรับ: Developer ที่ต้องการเข้าใจโครงสร้างโปรเจค   🎯 สำหรับ: Developer ใหม่ที่ต้องการติดตั้งโปรเจค
+├── 📚 guides/                    # คู่มือการใช้งาน├── 📚 guides/                    # คู่มือการใช้งาน
 
-   📝 เนื้อหา: System architecture, Database schema, Authentication system   📝 เนื้อหา: การติดตั้ง Flutter, dependencies, วิธีรันโปรเจค
+├── 🐛 bug-fixes/                # การแก้ไขบั๊ก├── 🐛 bug-fixes/                # การแก้ไขบั๊ก
 
+├── 💬 chat-system/              # ระบบแชท├── � chat-system/              # ระบบแชท
 
+├── ⚙️ configuration/            # การตั้งค่าระบบ├── ⚙️ configuration/            # การตั้งค่าระบบ
 
-🔧 guides/ADMIN_GUIDE.md🏗️ ARCHITECTURE.md  
+├── 📊 reports/                  # รายงานและสถิติ├── 📊 reports/                  # รายงานและสถิติ
 
-   📄 คู่มือการใช้งานระบบแอดมิน   📄 โครงสร้างระบบและสถาปัตยกรรม
+├── 📷 SCREENSHOTS.md            # ภาพหน้าจอระบบ├── 📷 SCREENSHOTS.md            # ภาพหน้าจอระบบ
 
-   🎯 สำหรับ: แอดมินและผู้จัดการระบบ   🎯 สำหรับ: Developer ที่ต้องการเข้าใจโครงสร้างโปรเจค
+└── 📖 MICRO_COMMERCE_GUIDE.txt  # คู่มือหลักของระบบ└── 📖 MICRO_COMMERCE_GUIDE.txt  # คู่มือหลักของระบบ
 
-   📝 เนื้อหา: การจัดการสินค้า, ผู้ใช้, คำสั่งซื้อ, รายงาน   📝 เนื้อหา: System architecture, Database schema, Authentication system
-
-
-
-🎟️ guides/COUPON_CODES_GUIDE.md🔧 ADMIN_GUIDE.md
-
-   📄 คู่มือการสร้างและใช้งานคูปองส่วนลด   📄 คู่มือการใช้งานระบบแอดมิน
-
-   🎯 สำหรับ: แอดมินที่ต้องการสร้างคูปอง   🎯 สำหรับ: แอดมินและผู้จัดการระบบ
-
-   📝 เนื้อหา: วิธีสร้างคูปอง, ตัวอย่างคูปอง   📝 เนื้อหา: การจัดการสินค้า, ผู้ใช้, คำสั่งซื้อ, รายงาน
+``````
 
 
 
-📊 guides/COUPON_CALCULATION_EXAMPLES.md🎟️ COUPON_CODES_GUIDE.md
-
-   📄 ตัวอย่างการคำนวณส่วนลดคูปอง   📄 คู่มือการสร้างและใช้งานคูปองส่วนลด
-
-   🎯 สำหรับ: Developer และแอดมิน   🎯 สำหรับ: แอดมินที่ต้องการสร้างคูปอง
-
-   📝 เนื้อหา: ตัวอย่างการคำนวณส่วนลดแบบต่างๆ   📝 เนื้อหา: วิธีสร้างคูปอง, ตัวอย่างคูปอง
+## 📚 คู่มือการใช้งาน (guides/)## 📚 คู่มือการใช้งาน (guides/)
 
 
 
-🧪 guides/COUPON_TESTING_GUIDE.md📊 COUPON_CALCULATION_EXAMPLES.md
+| ไฟล์ | หัวข้อ | เป้าหมาย | เนื้อหา || ไฟล์ | หัวข้อ | เป้าหมาย | เนื้อหา |
 
-   📄 คู่มือการทดสอบระบบคูปอง   📄 ตัวอย่างการคำนวณส่วนลดคูปอง
+|------|--------|----------|---------||------|--------|----------|---------|
 
-   🎯 สำหรับ: QA Tester และ Developer   🎯 สำหรับ: Developer และแอดมิน
+| 🏗️ `ARCHITECTURE.md` | โครงสร้างระบบ | Developer | System architecture, Database schema || 🏗️ `ARCHITECTURE.md` | โครงสร้างระบบ | Developer | System architecture, Database schema |
+
+| 🔧 `ADMIN_GUIDE.md` | คู่มือแอดมิน | Admin/Manager | การจัดการสินค้า, ผู้ใช้, คำสั่งซื้อ || 🔧 `ADMIN_GUIDE.md` | คู่มือแอดมิน | Admin/Manager | การจัดการสินค้า, ผู้ใช้, คำสั่งซื้อ |
+
+| 🎟️ `COUPON_CODES_GUIDE.md` | คู่มือคูปอง | Admin | วิธีสร้างและใช้งานคูปอง || 🎟️ `COUPON_CODES_GUIDE.md` | คู่มือคูปอง | Admin | วิธีสร้างและใช้งานคูปอง |
+
+| 📊 `COUPON_CALCULATION_EXAMPLES.md` | ตัวอย่างคำนวณ | Developer/Admin | ตัวอย่างการคำนวณส่วนลด || 📊 `COUPON_CALCULATION_EXAMPLES.md` | ตัวอย่างคำนวณ | Developer/Admin | ตัวอย่างการคำนวณส่วนลด |
+
+| 🧪 `COUPON_TESTING_GUIDE.md` | ทดสอบคูปอง | QA Tester | วิธีทดสอบระบบคูปอง || 🧪 `COUPON_TESTING_GUIDE.md` | ทดสอบคูปอง | QA Tester | วิธีทดสอบระบบคูปอง |
+
+| 📱 `DEMO_GUIDE.md` | คู่มือ Demo | End User | วิธีใช้งาน Demo แอป || 📱 `DEMO_GUIDE.md` | คู่มือ Demo | End User | วิธีใช้งาน Demo แอป |
+
+| 🚀 `DEMO_QUICK_START.md` | เริ่มต้นรวดเร็ว | Tester | ขั้นตอนเริ่มต้นใช้งาน Demo || 🚀 `DEMO_QUICK_START.md` | เริ่มต้นรวดเร็ว | Tester | ขั้นตอนเริ่มต้นใช้งาน Demo |
+
+| 🧪 `TESTING_INSTRUCTIONS.md` | คำแนะนำทดสอบ | QA Tester | ขั้นตอนการทดสอบระบบ || 🧪 `TESTING_INSTRUCTIONS.md` | คำแนะนำทดสอบ | QA Tester | ขั้นตอนการทดสอบระบบ |
+
+| 📦 `RELEASE_GUIDE.md` | คู่มือ Release | Developer/DevOps | ขั้นตอน Build APK และ Deploy || 📦 `RELEASE_GUIDE.md` | คู่มือ Release | Developer/DevOps | ขั้นตอน Build APK และ Deploy |
+
+| 📧 `SHARING_TEMPLATES.md` | Template แชร์ | Marketing/PM | Template การแชร์ Demo || � `SHARING_TEMPLATES.md` | Template แชร์ | Marketing/PM | Template การแชร์ Demo |
+
+
+
+## 🐛 การแก้ไขบั๊ก (bug-fixes/)   🎯 สำหรับ: Developer และแอดมิน   🎯 สำหรับ: แอดมินที่ต้องการสร้างคูปอง
+
+
+
+| ไฟล์ | หัวข้อ | สถานะ | ปัญหาที่แก้ |   📝 เนื้อหา: ตัวอย่างการคำนวณส่วนลดแบบต่างๆ   📝 เนื้อหา: วิธีสร้างคูปอง, ตัวอย่างคูปอง
+
+|------|--------|-------|-------------|
+
+| 🔧 `ADMIN_FIXES.md` | แก้ไขระบบแอดมิน | ✅ Complete | Admin panel issues |
+
+| 🏷️ `CATEGORY_ADMIN_FIX.md` | แก้ไขหมวดหมู่ | ✅ Complete | Category management |
+
+| 🔍 `CATEGORY_SEARCH_FIX.md` | แก้ไขการค้นหา | ✅ Complete | Search functionality |🧪 guides/COUPON_TESTING_GUIDE.md📊 COUPON_CALCULATION_EXAMPLES.md
+
+| 🗑️ `DELETE_PRODUCT_FIX.md` | แก้ไขลบสินค้า | ✅ Complete | Product deletion |
+
+| 📋 `DROPDOWN_ERROR_FIX.md` | แก้ไข Dropdown | ✅ Complete | Dropdown selections |   📄 คู่มือการทดสอบระบบคูปอง   📄 ตัวอย่างการคำนวณส่วนลดคูปอง
+
+| 📋 `ORDER_CONFIRMATION_FIX.md` | ยืนยันคำสั่งซื้อ | ✅ Complete | Order confirmation |
+
+| 📈 `ORDER_HISTORY_FIX.md` | ประวัติคำสั่งซื้อ | ✅ Complete | Order history display |   🎯 สำหรับ: QA Tester และ Developer   🎯 สำหรับ: Developer และแอดมิน
+
+| 🖥️ `BLACK_SCREEN_FIX_REPORT.md` | แก้หน้าจอดำ | ✅ Complete | Black screen issues |
 
    📝 เนื้อหา: วิธีทดสอบคูปอง, test cases   📝 เนื้อหา: ตัวอย่างการคำนวณส่วนลดแบบต่างๆ
 
-
-
-===============================================================================🧪 COUPON_TESTING_GUIDE.md
-
-   📄 คู่มือการทดสอบระบบคูปอง
-
-🔧 การแก้ไขและปรับปรุง (bug-fixes/)   🎯 สำหรับ: QA Tester และ Developer
-
-================================================================================   📝 เนื้อหา: วิธีทดสอบคูปอง, test cases
+## 💬 ระบบแชท (chat-system/)
 
 
 
-🐛 bug-fixes/BUG_FIX_REPORT.md===============================================================================
+| ไฟล์ | หัวข้อ | เนื้อหา |
 
-   📄 รายงานการแก้ไขบัคหลัก
+|------|--------|---------|===============================================================================🧪 COUPON_TESTING_GUIDE.md
 
-   🎯 สำหรับ: Development Team, Project Manager🔧 การแก้ไขและปรับปรุง (Bug Fixes & Improvements)
+| 🗑️ `CHAT_DELETION_DOCUMENTATION.md` | การลบแชท | คำแนะนำการลบข้อความ |
 
-   📝 เนื้อหา: สรุปบัคที่แก้ไข, สถิติการแก้ไข, Quality Score================================================================================
+| ❌ `CHAT_DELETION_ERROR_REPORT.md` | รายงานข้อผิดพลาด | ข้อผิดพลาดการลบแชท |   📄 คู่มือการทดสอบระบบคูปอง
 
+| 💬 `MESSAGE_DELETION_DOCUMENTATION.md` | การลบข้อความ | คำแนะนำการลบข้อความ |
 
-
-📋 bug-fixes/BUG_LOG.md🐛 BUG_FIX_REPORT.md
-
-   📄 บันทึกบัคและปัญหาต่างๆ   📄 รายงานการแก้ไขบัคหลัก
-
-   🎯 สำหรับ: Developer ที่ติดตามปัญหา   🎯 สำหรับ: Development Team, Project Manager
-
-   📝 เนื้อหา: รายการบัค, วิธีแก้ไข, สถานะ   📝 เนื้อหา: สรุปบัคที่แก้ไข, สถิติการแก้ไข, Quality Score
+| ✅ `CONFIRMATION_DIALOG_DOCUMENTATION.md` | หน้าต่างยืนยัน | การใช้งาน confirmation dialog |🔧 การแก้ไขและปรับปรุง (bug-fixes/)   🎯 สำหรับ: QA Tester และ Developer
 
 
+
+## ⚙️ การตั้งค่า (configuration/)================================================================================   📝 เนื้อหา: วิธีทดสอบคูปอง, test cases
+
+
+
+| ไฟล์ | หัวข้อ | เนื้อหา |
+
+|------|--------|---------|
+
+| 🔥 `FIREBASE_STORAGE_RULES.md` | Firebase Storage | กฎการเข้าถึงไฟล์ |🐛 bug-fixes/BUG_FIX_REPORT.md===============================================================================
+
+
+
+## 📊 รายงานและสถิติ (reports/)   📄 รายงานการแก้ไขบัคหลัก
+
+
+
+| ไฟล์ | หัวข้อ | เป้าหมาย | เนื้อหา |   🎯 สำหรับ: Development Team, Project Manager🔧 การแก้ไขและปรับปรุง (Bug Fixes & Improvements)
+
+|------|--------|----------|---------|
+
+| 📊 `QA_REPORT.md` | รายงาน QA | QA Team/PM | ผลการทดสอบ, test coverage |   📝 เนื้อหา: สรุปบัคที่แก้ไข, สถิติการแก้ไข, Quality Score================================================================================
+
+| 🏁 `FINAL_SUMMARY.md` | สรุปโปรเจค | PM/Stakeholders | สรุปความสำเร็จและ metrics |
+
+| 📈 `DEMO_ANALYTICS.md` | สถิติ Demo | Marketing/PM | ติดตามผล Demo และ feedback |
+
+| 🐛 `BUG_LOG.md` | บันทึกบั๊ก | Developer | รายการบั๊กและการแก้ไข |
+
+| 🧹 `DEBUG_CLEANUP_COMPLETE.md` | ทำความสะอาด | Developer | การจัดระเบียบโค้ด |📋 bug-fixes/BUG_LOG.md🐛 BUG_FIX_REPORT.md
+
+
+
+## 📖 เอกสารหลัก   📄 บันทึกบัคและปัญหาต่างๆ   📄 รายงานการแก้ไขบัคหลัก
+
+
+
+| ไฟล์ | หัวข้อ | เนื้อหา |   🎯 สำหรับ: Developer ที่ติดตามปัญหา   🎯 สำหรับ: Development Team, Project Manager
+
+|------|--------|---------|
+
+| 📷 `SCREENSHOTS.md` | ภาพหน้าจอ | ภาพประกอบการใช้งาน |   📝 เนื้อหา: รายการบัค, วิธีแก้ไข, สถานะ   📝 เนื้อหา: สรุปบัคที่แก้ไข, สถิติการแก้ไข, Quality Score
+
+| 📖 `MICRO_COMMERCE_GUIDE.txt` | คู่มือหลัก | คู่มือครบถ้วนทั้งระบบ |
+
+
+
+## 🚀 เส้นทางการอ่านแนะนำ
 
 🛠️ bug-fixes/ADMIN_FIXES.md📋 BUG_LOG.md
 
-   📄 การแก้ไขปัญหาระบบแอดมิน   📄 บันทึกบัคและปัญหาต่างๆ
+### 👨‍💻 สำหรับ Developer ใหม่
 
-   🎯 สำหรับ: Developer ที่ดูแลระบบแอดมิน   🎯 สำหรับ: Developer ที่ติดตามปัญหา
+1. `📖 MICRO_COMMERCE_GUIDE.txt` - เข้าใจภาพรวม   📄 การแก้ไขปัญหาระบบแอดมิน   📄 บันทึกบัคและปัญหาต่างๆ
 
-   📝 เนื้อหา: แก้ไขการลบสินค้า, ระบบหมวดหมู่   📝 เนื้อหา: รายการบัค, วิธีแก้ไข, สถานะ
+2. `🏗️ guides/ARCHITECTURE.md` - เรียนรู้โครงสร้าง
+
+3. `🔧 guides/ADMIN_GUIDE.md` - ทำความเข้าใจระบบ   🎯 สำหรับ: Developer ที่ดูแลระบบแอดมิน   🎯 สำหรับ: Developer ที่ติดตามปัญหา
 
 
+
+### 👨‍💼 สำหรับ Admin/Manager   📝 เนื้อหา: แก้ไขการลบสินค้า, ระบบหมวดหมู่   📝 เนื้อหา: รายการบัค, วิธีแก้ไข, สถานะ
+
+1. `🔧 guides/ADMIN_GUIDE.md` - เริ่มต้นที่นี่
+
+2. `🎟️ guides/COUPON_CODES_GUIDE.md` - จัดการคูปอง
+
+3. `📊 reports/QA_REPORT.md` - ดูสถานะระบบ
 
 🔍 bug-fixes/CATEGORY_ADMIN_FIX.md🛠️ ADMIN_FIXES.md
 
-   📄 แก้ไขระบบหมวดหมู่ในแอดมิน   📄 การแก้ไขปัญหาระบบแอดมิน
+### 🧪 สำหรับ QA Tester
 
-   🎯 สำหรับ: Developer   🎯 สำหรับ: Developer ที่ดูแลระบบแอดมิน
+1. `🧪 guides/TESTING_INSTRUCTIONS.md` - เรียนรู้การทดสอบ   📄 แก้ไขระบบหมวดหมู่ในแอดมิน   📄 การแก้ไขปัญหาระบบแอดมิน
 
-   📝 เนื้อหา: แก้ไขปัญหาการจัดการหมวดหมู่สินค้า   📝 เนื้อหา: แก้ไขการลบสินค้า, ระบบหมวดหมู่
+2. `🧪 guides/COUPON_TESTING_GUIDE.md` - ทดสอบคูปอง
+
+3. `📊 reports/DEMO_ANALYTICS.md` - ติดตามผล   🎯 สำหรับ: Developer   🎯 สำหรับ: Developer ที่ดูแลระบบแอดมิน
 
 
+
+### 📱 สำหรับผู้ทดสอบ Demo   📝 เนื้อหา: แก้ไขปัญหาการจัดการหมวดหมู่สินค้า   📝 เนื้อหา: แก้ไขการลบสินค้า, ระบบหมวดหมู่
+
+1. `🚀 guides/DEMO_QUICK_START.md` - เริ่มต้นที่นี่
+
+2. `📱 guides/DEMO_GUIDE.md` - คู่มือการใช้งาน
+
+3. `📈 reports/DEMO_ANALYTICS.md` - ให้ feedback
 
 🔎 bug-fixes/CATEGORY_SEARCH_FIX.md🔍 CATEGORY_ADMIN_FIX.md
 
-   📄 แก้ไขระบบค้นหาและกรองหมวดหมู่   📄 แก้ไขระบบหมวดหมู่ในแอดมิน
+### 📢 สำหรับ Marketing/PM
 
-   🎯 สำหรับ: Developer   🎯 สำหรับ: Developer
+1. `📧 guides/SHARING_TEMPLATES.md` - Template การแชร์   📄 แก้ไขระบบค้นหาและกรองหมวดหมู่   📄 แก้ไขระบบหมวดหมู่ในแอดมิน
 
-   📝 เนื้อหา: แก้ไขฟังก์ชันค้นหาและกรอง   📝 เนื้อหา: แก้ไขปัญหาการจัดการหมวดหมู่สินค้า
+2. `📈 reports/DEMO_ANALYTICS.md` - ติดตามสถิติ
+
+3. `🏁 reports/FINAL_SUMMARY.md` - สรุปโปรเจค   🎯 สำหรับ: Developer   🎯 สำหรับ: Developer
 
 
+
+---   📝 เนื้อหา: แก้ไขฟังก์ชันค้นหาและกรอง   📝 เนื้อหา: แก้ไขปัญหาการจัดการหมวดหมู่สินค้า
+
+
+
+**📚 เอกสารทั้งหมดจัดระเบียบแล้ว | อัปเดตล่าสุด: 22 ตุลาคม 2025**
 
 🗑️ bug-fixes/DELETE_PRODUCT_FIX.md🔎 CATEGORY_SEARCH_FIX.md
 

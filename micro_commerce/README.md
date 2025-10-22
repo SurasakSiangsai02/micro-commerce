@@ -272,7 +272,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Surasak Siangsai**
 - GitHub: [@SurasakSiangsai02](https://github.com/SurasakSiangsai02)
-- Email: surasak.siangsai@example.com
+- Email: surachat.siangsai@gmail.com
 
 ---
 
@@ -289,7 +289,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you found this project helpful, please give it a ⭐ on GitHub!
 
-For support, email surasak.siangsai@example.com or create an issue in the repository.
+For support, email surachat.siangsai@gmail.com or create an issue in the repository.
 
 ---
 
