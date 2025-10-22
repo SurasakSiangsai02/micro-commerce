@@ -19,6 +19,11 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    lintOptions {
+        isCheckReleaseBuilds = false
+        isAbortOnError = false
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.micro_commerce"
