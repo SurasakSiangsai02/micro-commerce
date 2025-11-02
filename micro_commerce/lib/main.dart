@@ -32,6 +32,7 @@ import 'providers/cart_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/coupon_provider.dart';
+import 'services/firebase_tester.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/customer/product_detail_screen.dart';
@@ -78,6 +79,16 @@ void main() async {
     
     // เริ่มต้น Stripe Payment
     await PaymentService.initialize();
+    
+    // 🔬 ทดสอบ Firebase Storage ใน Development mode
+    if (AppConfig.isDevelopment) {
+      // รอ 2 วินาทีให้ Firebase initialize เสร็จ
+      await Future.delayed(const Duration(seconds: 2));
+      // รัน Firebase tests ใน background (ไม่บล็อคแอป)
+      FirebaseConnectionTester.runAllTests().catchError((e) {
+        print('🚨 [MicroCommerce] Firebase test error: $e');
+      });
+    }
     
     runApp(
       MultiProvider(

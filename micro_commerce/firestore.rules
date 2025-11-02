@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow reading for admin functions
+    }
+    
+    // Products collection - authenticated users can read, admin can write
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null; // Simplified for development
+    }
+    
+    // Cart collection - users can manage their own cart
+    match /users/{userId}/cart/{cartId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Orders collection - users can read/write their own orders
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Coupons collection - authenticated users can read, admin can write
+    match /coupons/{couponId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null; // Simplified for development
+    }
+    
+    // Chat rooms and messages - authenticated users can access
+    match /chat_rooms/{roomId} {
+      allow read, write: if request.auth != null;
+      
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // Test data and temporary collections
+    match /test/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Fallback rule - allow authenticated users (Development Mode)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

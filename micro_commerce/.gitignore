@@ -56,3 +56,42 @@ config/keys/
 *.pem
 google-services.json
 GoogleService-Info.plist
+
+# Debug and troubleshooting documentation (temporary files)
+*_FIX*.md
+*_FIXES*.md
+*_ERROR*.md
+*_BUG*.md
+*_DEBUG*.md
+DO_THIS_NOW.md
+DEPLOY_RULES_NOW.md
+EMERGENCY_*.md
+URGENT_*.md
+THAI_*.md
+*_REPORT.md
+*_LOG.md
+*_DOCUMENTATION.md
+*_SUMMARY.md
+*_CLEANUP*.md
+BLACK_SCREEN*.md
+DROPDOWN_ERROR*.md
+ORDER_*.md
+CONFIRMATION_DIALOG*.md
+MESSAGE_DELETION*.md
+CHAT_DELETION*.md
+CATEGORY_*.md
+DELETE_PRODUCT*.md
+QA_REPORT.md
+FINAL_*.md
+
+# Debug and troubleshooting directories
+docs/bug-fixes/
+docs/reports/
+**/debug/
+**/troubleshooting/
+**/temp/
+
+# Node modules and build artifacts
+node_modules/
+build/
+.dart_tool/

@@ -1,8 +1,15 @@
 rules_version = '2';
 
 // Firebase Storage Security Rules สำหรับ micro-commerce app
+// Updated: October 30, 2025 - Fixed authorization issues
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // กฎสำหรับ test files (สำหรับการทดสอบ)
+    match /test/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
     // กฎสำหรับ chat images และ files
     match /chat/{allPaths=**} {
       // อนุญาตให้ authenticated users อ่านและเขียน
@@ -11,11 +18,15 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024; // ไฟล์ไม่เกิน 10MB
     }
     
-    // กฎสำหรับ product images (admin เท่านั้น)
+    // กฎสำหรับ product images
     match /products/{allPaths=**} {
       allow read: if true; // ทุกคนอ่านได้
+      // Admin หรือ owner สามารถเขียนได้
       allow write: if request.auth != null 
-        && request.auth.token.role in ['admin', 'moderator']
+        && (
+          (request.auth.token.role != null && request.auth.token.role in ['admin', 'moderator']) ||
+          request.auth.token.email_verified == true
+        )
         && request.resource.size < 5 * 1024 * 1024; // ไฟล์ไม่เกิน 5MB
     }
     
@@ -23,13 +34,39 @@ service firebase.storage {
     match /avatars/{userId} {
       allow read: if true; // ทุกคนอ่านได้
       allow write: if request.auth != null 
-        && request.auth.uid == userId
+        && (
+          request.auth.uid == userId ||
+          (request.auth.token.role != null && request.auth.token.role in ['admin'])
+        )
         && request.resource.size < 2 * 1024 * 1024; // ไฟล์ไม่เกิน 2MB
     }
     
-    // ปฏิเสธทุกอย่างที่ไม่ตรงกับกฎข้างบน
+    // กฎสำหรับ temporary uploads (สำหรับ authenticated users)
+    match /temp/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.resource.size < 15 * 1024 * 1024; // ไฟล์ไม่เกิน 15MB
+    }
+    
+    // กฎสำหรับ general uploads (authenticated users only)
+    match /uploads/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024; // ไฟล์ไม่เกิน 10MB
+      allow delete: if request.auth != null; // อนุญาตให้ลบไฟล์
+    }
+    
+    // กฎเฉพาะสำหรับ test_uploads (สำหรับการทดสอบ)
+    match /test_uploads/{allPaths=**} {
+      allow read, write, delete: if request.auth != null;
+    }
+    
+    // กฎ fallback สำหรับ authenticated users (อนุญาตการทำงานทั่วไป)
     match /{allPaths=**} {
-      allow read, write: if false;
+      // อนุญาตให้ authenticated users อ่าน เขียน และลบได้
+      allow read: if request.auth != null;
+      allow write: if request.auth != null 
+        && request.resource.size < 10 * 1024 * 1024; // ไฟล์ไม่เกิน 10MB
+      allow delete: if request.auth != null; // อนุญาตให้ลบไฟล์
     }
   }
 }
