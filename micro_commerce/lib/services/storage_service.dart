@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path/path.dart' as path;
 import '../utils/logger.dart';
 
@@ -12,6 +12,44 @@ import '../utils/logger.dart';
 /// - จัดการ URL และ metadata
 class StorageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  /// Debug Firebase Storage authentication status
+  static Future<void> _debugFirebaseStorageAuth() async {
+    print('🔍 === Firebase Storage Debug Info ===');
+    
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('🔍 User authenticated: YES');
+      print('🔍 UID: ${currentUser.uid}');
+      print('🔍 Email: ${currentUser.email}');
+      print('🔍 Email verified: ${currentUser.emailVerified}');
+      print('🔍 Provider data: ${currentUser.providerData.map((p) => p.providerId).toList()}');
+      
+      // ตรวจสอบ Firebase Auth token
+      try {
+        final idToken = await currentUser.getIdToken();
+        print('🔍 Has ID Token: ${idToken?.isNotEmpty ?? false}');
+        
+        final idTokenResult = await currentUser.getIdTokenResult();
+        print('🔍 Token expiration: ${idTokenResult.expirationTime}');
+        print('🔍 Token auth time: ${idTokenResult.authTime}');
+        
+        if (idTokenResult.claims != null && idTokenResult.claims!.isNotEmpty) {
+          print('🔍 Custom claims: ${idTokenResult.claims}');
+        }
+      } catch (e) {
+        print('❌ Token error: $e');
+      }
+    } else {
+      print('❌ User NOT authenticated');
+    }
+    
+    // ตรวจสอบ Firebase Storage instance
+    print('🔍 Storage bucket: ${_storage.bucket}');
+    print('🔍 Storage app: ${_storage.app.name}');
+    
+    print('🔍 === End Debug Info ===');
+  }
   
   /// 📱 อัพโหลดรูปภาพสำหรับแชท
   static Future<String?> uploadChatImage({
@@ -19,6 +57,9 @@ class StorageService {
     required String userId,
   }) async {
     try {
+      // เรียกใช้ debug function ก่อน
+      await _debugFirebaseStorageAuth();
+      
       print('🔍 StorageService: Starting upload process...');
       print('🔍 File path: $filePath');
       print('🔍 User ID: $userId');
@@ -39,26 +80,46 @@ class StorageService {
         return null;
       }
       
-      final fileName = 'chat_images/${userId}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName = 'chat/${userId}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       
       Logger.info('Starting chat image upload: $fileName');
       Logger.info('File size: $fileSize bytes');
       Logger.info('User ID: $userId');
       print('🔍 Firebase path: $fileName');
       
+      // Check authentication status
+      final currentUser = FirebaseAuth.instance.currentUser;
+      print('🔍 Current user: ${currentUser?.uid}');
+      print('🔍 User email: ${currentUser?.email}');
+      print('🔍 Email verified: ${currentUser?.emailVerified}');
+      
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+      
       // Upload file to Firebase Storage
       print('🔍 Creating Firebase Storage reference...');
       final ref = _storage.ref().child(fileName);
+      print('🔍 Storage reference: ${ref.fullPath}');
+      print('🔍 Storage bucket: ${ref.bucket}');
       
       print('🔍 Starting upload task...');
       final uploadTask = ref.putFile(file);
       
-      // Monitor upload progress
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        print('📊 Upload progress: ${progress.toStringAsFixed(1)}%');
-        Logger.info('Upload progress: ${progress.toStringAsFixed(1)}%');
-      });
+      // Monitor upload progress with enhanced logging
+      uploadTask.snapshotEvents.listen(
+        (TaskSnapshot snapshot) {
+          final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          print('📊 Upload progress: ${progress.toStringAsFixed(1)}%');
+          print('📊 State: ${snapshot.state}');
+          print('📊 Bytes: ${snapshot.bytesTransferred}/${snapshot.totalBytes}');
+          Logger.info('Upload progress: ${progress.toStringAsFixed(1)}%');
+        },
+        onError: (error) {
+          print('❌ Upload stream error: $error');
+          Logger.error('Upload stream error: $error');
+        },
+      );
       
       print('🔍 Waiting for upload to complete...');
       
@@ -66,46 +127,114 @@ class StorageService {
       final snapshot = await uploadTask.timeout(
         const Duration(minutes: 5),
         onTimeout: () {
-          print('❌ Upload timeout');
+          print('❌ Upload timeout after 5 minutes');
+          Logger.error('Upload timeout after 5 minutes');
           throw Exception('Upload timeout after 5 minutes');
         },
       );
       
-      print('✅ Upload completed, getting download URL...');
+      print('✅ Upload completed successfully');
+      print('✅ Final state: ${snapshot.state}');
+      print('✅ Total bytes uploaded: ${snapshot.totalBytes}');
       
-      // Get download URL
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      print('🔍 Getting download URL...');
       
-      print('🔍 Download URL: $downloadUrl');
+      // Get download URL with enhanced error tracking
+      print('🔍 Attempting to get download URL...');
       
-      // Validate URL
-      if (downloadUrl.isEmpty) {
-        print('❌ Empty download URL received');
-        Logger.error('Empty download URL received');
-        return null;
+      try {
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        print('✅ Download URL retrieved successfully');
+        print('🔍 Download URL: $downloadUrl');
+        
+        // Test URL accessibility
+        if (downloadUrl.startsWith('https://')) {
+          print('✅ URL format is valid');
+        } else {
+          print('⚠️ Unexpected URL format: $downloadUrl');
+        }
+        
+        // Validate และ log success
+        if (downloadUrl.isEmpty) {
+          print('❌ Empty download URL received');
+          Logger.error('Empty download URL received');
+          return null;
+        }
+        
+        Logger.business('Chat image uploaded successfully', {
+          'userId': userId,
+          'fileName': fileName,
+          'downloadUrl': downloadUrl,
+          'fileSize': snapshot.totalBytes,
+        });
+        
+        Logger.info('✅ Final download URL: $downloadUrl');
+        
+        return downloadUrl;
+        
+      } catch (urlError, urlStackTrace) {
+        print('❌ Failed to get download URL');
+        print('❌ URL Error: $urlError');
+        print('❌ URL Stack trace: $urlStackTrace');
+        
+        // ตรวจสอบ specific Firebase Storage errors
+        if (urlError is FirebaseException) {
+          print('❌ Firebase URL Error Code: ${urlError.code}');
+          print('❌ Firebase URL Error Message: ${urlError.message}');
+          
+          if (urlError.code == 'unauthorized') {
+            print('❌ AUTHORIZATION ERROR at getDownloadURL step');
+            print('❌ This suggests Storage Rules configuration issue');
+            print('❌ File was uploaded successfully but cannot generate public URL');
+            
+            // ลองดึง metadata เพื่อยืนยันว่าไฟล์อยู่จริง
+            try {
+              final metadata = await snapshot.ref.getMetadata();
+              print('✅ File metadata exists: ${metadata.name}');
+              print('✅ File size: ${metadata.size}');
+              print('✅ Content type: ${metadata.contentType}');
+              print('❌ But download URL generation failed - Storage Rules issue');
+            } catch (metadataError) {
+              print('❌ Cannot get metadata either: $metadataError');
+            }
+          }
+        }
+        
+        throw urlError;
       }
-      
-      Logger.business('Chat image uploaded successfully', {
-        'userId': userId,
-        'fileName': fileName,
-        'downloadUrl': downloadUrl,
-        'fileSize': snapshot.totalBytes,
-      });
-      
-      Logger.info('✅ Final download URL: $downloadUrl');
-      
-      return downloadUrl;
       
     } catch (e, stackTrace) {
       print('❌ StorageService Error: $e');
       print('❌ Stack trace: $stackTrace');
       
-      // จัดการ error เฉพาะเจาะจง
+      // จัดการ Firebase Storage specific errors
       String errorMessage = 'Unknown upload error';
-      if (e.toString().contains('network')) {
+      
+      if (e is FirebaseException) {
+        print('❌ Firebase Storage Exception Code: ${e.code}');
+        print('❌ Firebase Storage Exception Message: ${e.message}');
+        
+        switch (e.code) {
+          case 'unauthorized':
+            errorMessage = 'User is not authorized to perform the desired action.';
+            print('❌ Firebase Storage unauthorized - checking auth status...');
+            final currentUser = FirebaseAuth.instance.currentUser;
+            print('❌ Current user UID: ${currentUser?.uid}');
+            print('❌ Email: ${currentUser?.email}');
+            print('❌ Email verified: ${currentUser?.emailVerified}');
+            print('❌ Upload path was: chat/$userId/');
+            break;
+          case 'cancelled':
+            errorMessage = 'Upload was cancelled';
+            break;
+          case 'unknown':
+            errorMessage = 'Unknown Firebase Storage error occurred';
+            break;
+          default:
+            errorMessage = 'Firebase Storage error: ${e.message}';
+        }
+      } else if (e.toString().contains('network')) {
         errorMessage = 'Network connection error';
-      } else if (e.toString().contains('permission')) {
-        errorMessage = 'Firebase Storage permission denied';
       } else if (e.toString().contains('timeout')) {
         errorMessage = 'Upload timeout';
       } else if (e.toString().contains('storage')) {

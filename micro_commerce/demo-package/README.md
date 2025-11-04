@@ -5,7 +5,7 @@
 ### 📱 **Application Files**
 ```
 demo-package/
-├── 📱 app-release.apk (60.9 MB)          ← Main Android app
+├── 📱 app-release.apk (62.1 MB)          ← Main Android app
 ├── 🔒 app-release.apk.sha1               ← Security checksum
 └── 📋 TESTING_INSTRUCTIONS.md            ← User guide
 ```
@@ -174,6 +174,22 @@ Best regards,
 4. Re-upload to cloud storage
 5. Notify testers of new version
 ```
+
+---
+
+## 🏗️ **Latest Build Information**
+
+**Build Date:** November 5, 2025 - 12:26 AM  
+**Version:** Release  
+**Size:** 62.1 MB  
+**SHA1:** `1C41235818075173876B903DD2CD2236584C5B70`
+
+**Latest Updates:**
+- ✅ Firebase Storage rules deployed
+- ✅ Chat image upload functionality restored
+- ✅ Payment system validation fixes
+- ✅ Coupon system UI enhancements
+- ✅ Admin chat permissions fixed
 
 ---
 

@@ -561,7 +561,32 @@ class ChatService {
     }
   }
 
-  /// 🔄 กู้คืนห้องแชท (สำหรับ Admin)
+  /// �️ ลบห้องแชทโดย Admin (ไม่ต้องเช็ค participant)
+  static Future<void> deleteChatRoomByAdmin(String roomId, String adminId) async {
+    try {
+      // ตรวจสอบว่าห้องแชทมีอยู่จริง
+      final roomDoc = await chatRoomsCollection.doc(roomId).get();
+      
+      if (!roomDoc.exists) {
+        throw Exception('Chat room not found');
+      }
+
+      // Admin สามารถลบห้องแชทใดๆ ได้โดยไม่ต้องเป็น participant
+      await chatRoomsCollection.doc(roomId).update({
+        'status': 'deleted_by_admin',
+        'deletedBy': adminId,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'lastActivity': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Chat room $roomId deleted by admin $adminId');
+    } catch (e) {
+      print('❌ Error deleting chat room by admin: $e');
+      throw Exception('Failed to delete chat room: $e');
+    }
+  }
+
+  /// �🔄 กู้คืนห้องแชท (สำหรับ Admin)
   static Future<void> restoreChatRoom(String roomId) async {
     try {
       await chatRoomsCollection.doc(roomId).update({
@@ -581,7 +606,7 @@ class ChatService {
   /// 📊 ดึงห้องแชทที่ถูกลบ (สำหรับ Admin)
   static Stream<List<ChatRoom>> getDeletedChatRooms() {
     return chatRoomsCollection
-        .where('status', isEqualTo: 'deleted_by_user')
+        .where('status', whereIn: ['deleted_by_user', 'deleted_by_admin'])
         .orderBy('deletedAt', descending: true)
         .snapshots()
         .map((snapshot) {

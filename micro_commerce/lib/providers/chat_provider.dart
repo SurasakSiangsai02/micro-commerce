@@ -374,7 +374,7 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🗑️ ลบห้องแชท (สำหรับ User)
+  /// 🗑️ ลบห้องแชท (สำหรับ User และ Admin)
   Future<void> deleteChatRoom(String roomId) async {
     try {
       if (_currentUser == null) {
@@ -383,8 +383,18 @@ class ChatProvider with ChangeNotifier {
 
       _setLoading(true);
 
+      // ตรวจสอบว่าเป็น Admin/Moderator หรือไม่
+      final isAdminOrModerator = _currentUser!.role.toString().contains('admin') || 
+                                 _currentUser!.role.toString().contains('moderator');
+
       // เรียกใช้ ChatService เพื่อลบห้องแชท
-      await ChatService.deleteChatRoomByUser(roomId, _currentUser!.uid);
+      if (isAdminOrModerator) {
+        // Admin ลบได้โดยไม่ต้องเป็น participant
+        await ChatService.deleteChatRoomByAdmin(roomId, _currentUser!.uid);
+      } else {
+        // User ต้องเป็น participant
+        await ChatService.deleteChatRoomByUser(roomId, _currentUser!.uid);
+      }
 
       // ถ้าห้องที่ถูกลบเป็นห้องปัจจุบัน ให้ออกจากห้อง
       if (_currentRoom?.id == roomId) {
