@@ -92,12 +92,18 @@ class Coupon {
       return 0.0;
     }
 
+    double discount;
     switch (type) {
       case CouponType.percentage:
-        return orderAmount * (discountValue / 100);
+        discount = orderAmount * (discountValue / 100);
+        break;
       case CouponType.fixedAmount:
-        return discountValue;
+        discount = discountValue;
+        break;
     }
+    
+    // ตรวจสอบว่าส่วนลดไม่เกินยอดสั่งซื้อ (เหลือยอดขั้นต่ำ $0.01)
+    return discount.clamp(0.0, orderAmount - 0.01);
   }
 
   /// ตรวจสอบว่าใช้คูปองได้หรือไม่

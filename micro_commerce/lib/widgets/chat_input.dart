@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 /// ⌨️ ChatInput - Input field สำหรับพิมพ์ข้อความและแนบไฟล์
@@ -100,6 +101,25 @@ class _ChatInputState extends State<ChatInput> {
 
   Future<void> _pickImage() async {
     try {
+      // ขอ permission ตาม Android version
+      bool hasPermission = false;
+      
+      if (Platform.isAndroid) {
+        // Android 13+ ใช้ READ_MEDIA_IMAGES
+        final mediaPermission = await Permission.photos.request();
+        final storagePermission = await Permission.storage.request();
+        
+        hasPermission = mediaPermission.isGranted || storagePermission.isGranted;
+        
+        if (!hasPermission) {
+          _showErrorSnackBar('กรุณาอนุญาตการเข้าถึงรูปภาพในการตั้งค่าแอป');
+          return;
+        }
+      } else {
+        hasPermission = true; // iOS จัดการ permission เอง
+      }
+
+      print('📷 Starting image picker...');
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
@@ -109,17 +129,38 @@ class _ChatInputState extends State<ChatInput> {
       );
 
       if (image != null) {
-        widget.onImageSelected?.call(image.path);
+        print('📷 Image selected: ${image.path}');
+        // ตรวจสอบว่าไฟล์มีอยู่จริง
+        final file = File(image.path);
+        if (await file.exists()) {
+          print('📷 File exists, size: ${await file.length()} bytes');
+          widget.onImageSelected?.call(image.path);
+        } else {
+          print('❌ File does not exist');
+          _showErrorSnackBar('ไม่สามารถเข้าถึงไฟล์รูปภาพได้');
+        }
         setState(() => _showAttachmentOptions = false);
+      } else {
+        print('📷 No image selected');
       }
     } catch (e) {
       print('Error picking image: $e');
-      _showErrorSnackBar('Failed to pick image');
+      _showErrorSnackBar('Failed to pick image: $e');
     }
   }
 
   Future<void> _takePhoto() async {
     try {
+      // ขอ camera permission
+      if (Platform.isAndroid) {
+        final cameraPermission = await Permission.camera.request();
+        if (!cameraPermission.isGranted) {
+          _showErrorSnackBar('กรุณาอนุญาตการเข้าถึงกล้องในการตั้งค่าแอป');
+          return;
+        }
+      }
+
+      print('📷 Starting camera...');
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.camera,
@@ -129,12 +170,23 @@ class _ChatInputState extends State<ChatInput> {
       );
 
       if (image != null) {
-        widget.onImageSelected?.call(image.path);
+        print('📷 Photo taken: ${image.path}');
+        // ตรวจสอบว่าไฟล์มีอยู่จริง
+        final file = File(image.path);
+        if (await file.exists()) {
+          print('📷 File exists, size: ${await file.length()} bytes');
+          widget.onImageSelected?.call(image.path);
+        } else {
+          print('❌ File does not exist');
+          _showErrorSnackBar('ไม่สามารถบันทึกรูปภาพได้');
+        }
         setState(() => _showAttachmentOptions = false);
+      } else {
+        print('📷 No photo taken');
       }
     } catch (e) {
       print('Error taking photo: $e');
-      _showErrorSnackBar('Failed to take photo');
+      _showErrorSnackBar('Failed to take photo: $e');
     }
   }
 

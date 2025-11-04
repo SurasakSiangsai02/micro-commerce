@@ -120,7 +120,21 @@ class CouponProvider with ChangeNotifier {
     }
   }
 
-  /// ยกเลิกการใช้คูปอง
+  /// ใช้คูปองโดยตรงจาก Coupon object
+  bool applyCouponDirect(Coupon coupon, double orderAmount) {
+    if (!coupon.canBeUsed(orderAmount)) {
+      _setValidationMessage('ไม่สามารถใช้คูปองนี้ได้');
+      return false;
+    }
+
+    _appliedCoupon = coupon;
+    _discountAmount = coupon.calculateDiscount(orderAmount);
+    _clearValidationMessage();
+    notifyListeners();
+    return true;
+  }
+
+  /// ยกเลิกคูปอง
   void removeCoupon() {
     _appliedCoupon = null;
     _discountAmount = 0.0;

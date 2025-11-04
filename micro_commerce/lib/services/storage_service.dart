@@ -19,36 +19,68 @@ class StorageService {
     required String userId,
   }) async {
     try {
+      print('🔍 StorageService: Starting upload process...');
+      print('🔍 File path: $filePath');
+      print('🔍 User ID: $userId');
+      
       final file = File(filePath);
       if (!await file.exists()) {
+        print('❌ StorageService: File does not exist: $filePath');
         Logger.error('File does not exist: $filePath');
+        return null;
+      }
+      
+      final fileSize = await file.length();
+      print('🔍 File exists, size: $fileSize bytes');
+      
+      if (fileSize == 0) {
+        print('❌ StorageService: File is empty');
+        Logger.error('File is empty: $filePath');
         return null;
       }
       
       final fileName = 'chat_images/${userId}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       
       Logger.info('Starting chat image upload: $fileName');
-      Logger.info('File size: ${await file.length()} bytes');
+      Logger.info('File size: $fileSize bytes');
       Logger.info('User ID: $userId');
+      print('🔍 Firebase path: $fileName');
       
       // Upload file to Firebase Storage
+      print('🔍 Creating Firebase Storage reference...');
       final ref = _storage.ref().child(fileName);
+      
+      print('🔍 Starting upload task...');
       final uploadTask = ref.putFile(file);
       
       // Monitor upload progress
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
         final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        print('📊 Upload progress: ${progress.toStringAsFixed(1)}%');
         Logger.info('Upload progress: ${progress.toStringAsFixed(1)}%');
       });
       
-      // Wait for upload to complete
-      final snapshot = await uploadTask;
+      print('🔍 Waiting for upload to complete...');
+      
+      // Wait for upload to complete with timeout
+      final snapshot = await uploadTask.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () {
+          print('❌ Upload timeout');
+          throw Exception('Upload timeout after 5 minutes');
+        },
+      );
+      
+      print('✅ Upload completed, getting download URL...');
       
       // Get download URL
       final downloadUrl = await snapshot.ref.getDownloadURL();
       
+      print('🔍 Download URL: $downloadUrl');
+      
       // Validate URL
       if (downloadUrl.isEmpty) {
+        print('❌ Empty download URL received');
         Logger.error('Empty download URL received');
         return null;
       }
@@ -65,7 +97,23 @@ class StorageService {
       return downloadUrl;
       
     } catch (e, stackTrace) {
-      Logger.error('Failed to upload chat image', error: e, stackTrace: stackTrace);
+      print('❌ StorageService Error: $e');
+      print('❌ Stack trace: $stackTrace');
+      
+      // จัดการ error เฉพาะเจาะจง
+      String errorMessage = 'Unknown upload error';
+      if (e.toString().contains('network')) {
+        errorMessage = 'Network connection error';
+      } else if (e.toString().contains('permission')) {
+        errorMessage = 'Firebase Storage permission denied';
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = 'Upload timeout';
+      } else if (e.toString().contains('storage')) {
+        errorMessage = 'Firebase Storage error';
+      }
+      
+      print('❌ Error type: $errorMessage');
+      Logger.error('Failed to upload chat image: $errorMessage', error: e, stackTrace: stackTrace);
       return null;
     }
   }

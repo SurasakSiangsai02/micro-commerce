@@ -4,6 +4,7 @@ import '../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/confirmation_dialog.dart';
+import '../../widgets/available_coupons_widget.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/coupon_provider.dart';
@@ -29,9 +30,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _expiryController = TextEditingController();
   final _cvcController = TextEditingController();
   final _cardHolderController = TextEditingController();
-  
-  // Coupon Controller
-  final _couponController = TextEditingController();
   
   String _selectedPaymentMethod = 'creditCard';
   bool _isLoading = false;
@@ -78,10 +76,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final cartItems = cartProvider.items;
         final originalTotal = cartProvider.total;
         final discountAmount = couponProvider.discountAmount;
-        final subtotalAfterDiscount = originalTotal - discountAmount;
+        
+        // ตรวจสอบให้ subtotal หลังหักส่วนลดไม่ติดลบ
+        final subtotalAfterDiscount = (originalTotal - discountAmount).clamp(0.0, double.infinity);
         final taxRate = 0.08; // 8% tax
         final taxAmount = subtotalAfterDiscount * taxRate;
         final finalTotal = subtotalAfterDiscount + taxAmount;
+        
+        // ตรวจสอบยอดขั้นต่ำสำหรับ Stripe (ขั้นต่ำ $0.50)
+        final minimumAmount = 0.50;
+        if (finalTotal < minimumAmount && _selectedPaymentMethod == 'creditCard') {
+          throw Exception('Payment amount must be at least \$${minimumAmount.toStringAsFixed(2)}');
+        }
         
         // เตรียมข้อมูล shipping address
         final shippingAddress = {
@@ -756,8 +762,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
 
-            // Coupon Section
+            const SizedBox(height: 16),
+
+            // Available Coupons Section
+            const AvailableCouponsWidget(),
+            
+            // Applied Coupon Display (แสดงใกล้กับ Order Summary)
             _buildCouponSection(),
+
+            const SizedBox(height: 8),
 
             // Order Summary and Place Order Button
             Container(
@@ -777,7 +790,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   builder: (context, cartProvider, couponProvider, child) {
                     final originalTotal = cartProvider.total;
                     final discountAmount = couponProvider.discountAmount;
-                    final subtotalAfterDiscount = originalTotal - discountAmount;
+                    
+                    // ตรวจสอบให้ subtotal หลังหักส่วนลดไม่ติดลบ
+                    final subtotalAfterDiscount = (originalTotal - discountAmount).clamp(0.0, double.infinity);
                     final taxRate = 0.08; // 8% tax
                     final taxAmount = subtotalAfterDiscount * taxRate;
                     final finalTotal = subtotalAfterDiscount + taxAmount;
@@ -869,10 +884,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         const SizedBox(height: 16),
 
+                        // Warning for low amount
+                        if (_selectedPaymentMethod == 'creditCard' && finalTotal < 0.50) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange[300]!),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning, color: Colors.orange[600]),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'ยอดชำระต้องไม่น้อยกว่า \$0.50 สำหรับบัตรเครดิต',
+                                    style: TextStyle(
+                                      color: Colors.orange[700],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+
                         // Place Order Button
                         CustomButton(
                           text: 'Place Order',
-                          onPressed: () => _handleCheckoutWithConfirmation(),
+                          onPressed: (_selectedPaymentMethod == 'creditCard' && finalTotal < 0.50) 
+                            ? null 
+                            : () => _handleCheckoutWithConfirmation(),
                           isLoading: _isLoading,
                         ),
                       ],
@@ -887,223 +932,67 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  /// 🎟️ Coupon Section
+  /// 🎟️ Coupon Section - แสดงคูปองที่ใช้ (ถ้ามี)
   Widget _buildCouponSection() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, 2),
-            blurRadius: 4,
+    return Consumer<CouponProvider>(
+      builder: (context, couponProvider, child) {
+        if (!couponProvider.hasAppliedCoupon) {
+          return const SizedBox.shrink(); // ไม่แสดงอะไรถ้าไม่มีคูปอง
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.shade200),
           ),
-        ],
-      ),
-      child: Consumer<CouponProvider>(
-        builder: (context, couponProvider, child) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green.shade600,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.local_offer,
-                      color: Colors.orange.shade600,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'ใส่รหัสคูปอง',
+                    Text(
+                      'คูปอง ${couponProvider.appliedCoupon!.code}',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ประหยัดได้ \$${couponProvider.discountAmount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.green.shade600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-
-                // Applied Coupon Display
-                if (couponProvider.hasAppliedCoupon) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          color: Colors.green.shade600,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'คูปอง ${couponProvider.appliedCoupon!.code} ถูกใช้แล้ว',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.green.shade700,
-                                ),
-                              ),
-                              Text(
-                                'ประหยัดได้ \$${couponProvider.discountAmount.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            couponProvider.removeCoupon();
-                            _couponController.clear();
-                          },
-                          icon: Icon(
-                            Icons.close,
-                            color: Colors.green.shade600,
-                            size: 20,
-                          ),
-                          tooltip: 'ยกเลิกคูปอง',
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  // Coupon Input
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _couponController,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration: InputDecoration(
-                            hintText: 'ใส่รหัสคูปอง',
-                            prefixIcon: const Icon(Icons.local_offer_outlined),
-                            border: const OutlineInputBorder(),
-                            enabled: !couponProvider.isValidating,
-                          ),
-                          onChanged: (value) {
-                            // Convert to uppercase automatically
-                            _couponController.text = value.toUpperCase();
-                            _couponController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: _couponController.text.length),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: couponProvider.isValidating ? null : _applyCoupon,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade600,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: couponProvider.isValidating
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'ใช้',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Validation Message
-                  if (couponProvider.validationMessage != null) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: couponProvider.appliedCoupon != null
-                          ? Colors.green.shade50
-                          : Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: couponProvider.appliedCoupon != null
-                            ? Colors.green.shade200
-                            : Colors.red.shade200,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            couponProvider.appliedCoupon != null
-                              ? Icons.check_circle_outline
-                              : Icons.error_outline,
-                            size: 16,
-                            color: couponProvider.appliedCoupon != null
-                              ? Colors.green.shade600
-                              : Colors.red.shade600,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              couponProvider.validationMessage!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: couponProvider.appliedCoupon != null
-                                  ? Colors.green.shade700
-                                  : Colors.red.shade700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+              IconButton(
+                onPressed: () => couponProvider.removeCoupon(),
+                icon: Icon(
+                  Icons.close,
+                  color: Colors.green.shade600,
+                  size: 20,
+                ),
+                tooltip: 'ยกเลิกคูปอง',
+              ),
+            ],
+          ),
+        );
+      },
     );
-  }
-
-  /// 🎟️ Apply Coupon
-  void _applyCoupon() async {
-    final couponCode = _couponController.text.trim();
-    if (couponCode.isEmpty) {
-      return;
-    }
-
-    final couponProvider = Provider.of<CouponProvider>(context, listen: false);
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    
-    final success = await couponProvider.applyCoupon(couponCode, cartProvider.total);
-    
-    if (success) {
-      // Clear input on success
-      _couponController.clear();
-      FocusScope.of(context).unfocus();
-    }
   }
 
   @override
@@ -1115,7 +1004,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _expiryController.dispose();
     _cvcController.dispose();
     _cardHolderController.dispose();
-    _couponController.dispose();
     super.dispose();
   }
 }
